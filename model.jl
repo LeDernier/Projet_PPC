@@ -1,20 +1,62 @@
 ### VARIABLES ###
 
-mutable struct variable{DataType<:Number}
-    name::String
-    domain::Vector{DataType}
-    value
+mutable struct Variable{DataType<:Number}
+    name::Any                           # variable name
+    index::Any                          # index of the variable in the problem instance
+    domain::Vector{DataType}            # domain / set of feasible values
+    value::Any                          # current value
+    index_domain::Integer               # maximal index to search in the domain
+
+    function Variable(name::String, domain::Vector{DataType}, value::Union{DataType,UndefInitializer}) where DataType
+        """
+            Constructor of a variable identified by his name.
+        """
+        index_domain = init_index_domain(domain)
+        return new{DataType}(name, undef,domain, value, index_domain)
+    end
+
+    function Variable(index::Integer, domain::Vector{DataType}, value::Union{DataType,UndefInitializer}) where DataType
+        """
+            Constructor of a variable identified by his index in the problem instance.
+        """
+        index_domain = init_index_domain(domain)
+        return new{DataType}(Any, index, domain, value, index_domain)
+    end
 end
 
+
+function init_index_domain(domain)
+    index_domain = 0
+    size_domain = length(domain)
+    if size_domain > 0
+        index_domain = size_domain
+    end
+    return index_domain
+end
 ### CONSTRAINTS ###
 
-mutable struct constraint{DataType <: Real}
+mutable struct BConstraint
+    """
+        Binary constraint.
+    """
+    name::String
+    variables::Vector{String}       # variable names
+    feasible_points::Union{Vector{Tuple{Int64, Int64}}, Vector{Tuple{Float64, Float64}}}
+
+    function BConstraint(name::String, variables::Vector{String}, feasible_points::Union{Vector{Tuple{Int64, Int64}}, Vector{Tuple{Float64, Float64}}})
+        return new(name, variables, feasible_points)
+    end
+end
+
+# CONSTRAINT - TODO : remove if not useful in the future
+
+mutable struct Constraint{DataType <: Real}
     name::String
     variables::Vector{String}       # variable names
     feasible_points                 # , type defined in the constructor
-    arity::Int32
+    arity::Integer
 
-    function constraint(name::String, variables::Vector{String}, 
+    function Constraint(name::String, variables::Vector{String}, 
         feasible_points::Vector{Any})
         """
             Constructor of a constraint with an empty feasible region.
@@ -23,7 +65,7 @@ mutable struct constraint{DataType <: Real}
         return new{DataType}(name, variables, feasible_points, length(variables))
     end
 
-    function constraint(name::String, variables::Vector{String}, 
+    function Constraint(name::String, variables::Vector{String}, 
         feasible_points::Vector{DataType}) where DataType
         """
             Constructor of a constraint on a single variable.
@@ -36,7 +78,7 @@ mutable struct constraint{DataType <: Real}
         return new{DataType}(name, variables, feasible_points, arity)
     end
 
-    function constraint(name::String, variables::Vector{String}, 
+    function Constraint(name::String, variables::Vector{String}, 
         feasible_points::Vector{Tuple{DataType, DataType}}) where DataType
         """
             Constructor of a constraint defined on two or more variable.
@@ -51,23 +93,48 @@ mutable struct constraint{DataType <: Real}
     end
 end
 
-mutable struct binary_constraint{DataType <: Real}
-    name::String
-    variables::Vector{String}       # variable names
-    feasible_points::Vector{Tuple{DataType, DataType}}
+### INSTANCE OF A PROBLEM ###
 
+mutable struct Instance_BCSP
+    """
+        Instance of a binary constraint satisfaction problem.
+    """
+    variables::Vector{Variable}
+    constraints::Vector{BConstraint}
 end
 
-function arity(constraint)
-    return length(constraint.variables)
+function nbVariables(instance::Instance_BCSP)
+    """
+        Returns the number of variables in the instance.
+    """
+    return length(instance.variables)
 end
 
-x = variable("x", collect(0:5), undef)
-x = variable("y", collect(0:5), undef)
-c1 = constraint("c1", collect(["x", "y"]), collect([(0,0), (0,1), (1,0)]))
-println(c1)
-c2 = constraint("c2", collect(["x", "y"]), collect(Int64, []))
-println(c2)
-c3 = constraint("c3", collect(["x", "y"]), collect([1,2,3]))
-println(c3)
-print("arity: ", arity(c1))
+function nbConstraints(instance::Instance_BCSP)
+    """
+        Returns the number of constraints in the instance.
+    """
+    return length(instance.constraints)
+end
+
+function print_instance(instance::Instance_BCSP)
+    println("Variables:")
+    for var in instance.variables
+        println(var)
+    end
+    println("Constraints:")
+    for c in instance.constraints
+        println(c)
+    end
+end
+
+### TESTS ####
+
+x = Variable("x", collect(Float64, 0:5), undef)
+y = Variable("y", collect(0:5), undef)
+
+c1 = BConstraint("c1", collect(["x", "y"]), collect([(0,0), (0,1), (1,0)]))
+c2 = BConstraint("c2", collect(["x", "y"]), collect([(1,0),(2,1)]))
+
+instance = Instance_BCSP(collect([x,y]),collect([c1,c2]))
+print_instance(instance)
