@@ -1,4 +1,7 @@
 ### VARIABLES ###
+module Model
+
+export Variable, BConstraint, Instance_BCSP, nbConstraints, nbVariables, print_instance
 
 mutable struct Variable{DataType<:Number}
     name::Any                           # variable name
@@ -33,6 +36,8 @@ function init_index_domain(domain)
     end
     return index_domain
 end
+
+
 ### CONSTRAINTS ###
 
 mutable struct BConstraint
@@ -48,50 +53,6 @@ mutable struct BConstraint
     end
 end
 
-# CONSTRAINT - TODO : remove if not useful in the future
-
-mutable struct Constraint{DataType <: Real}
-    name::String
-    variables::Vector{String}       # variable names
-    feasible_points                 # , type defined in the constructor
-    arity::Integer
-
-    function Constraint(name::String, variables::Vector{String}, 
-        feasible_points::Vector{Any})
-        """
-            Constructor of a constraint with an empty feasible region.
-        """
-        @warn "Constraint with an empty feasible region."
-        return new{DataType}(name, variables, feasible_points, length(variables))
-    end
-
-    function Constraint(name::String, variables::Vector{String}, 
-        feasible_points::Vector{DataType}) where DataType
-        """
-            Constructor of a constraint on a single variable.
-        """
-        # checking dimension consistency
-        arity = length(variables)
-        if arity != 1
-            error("The dimension of the feasible points and the number of variable does not match.")
-        end
-        return new{DataType}(name, variables, feasible_points, arity)
-    end
-
-    function Constraint(name::String, variables::Vector{String}, 
-        feasible_points::Vector{Tuple{DataType, DataType}}) where DataType
-        """
-            Constructor of a constraint defined on two or more variable.
-        """
-        # checking dimension consistency
-        arity = length(variables)
-        if arity != length(feasible_points[1])
-            error("The dimension of the feasible points and the number of variable does not match.")
-        end
-
-        return new{DataType}(name, variables, feasible_points, arity)
-    end
-end
 
 ### INSTANCE OF A PROBLEM ###
 
@@ -128,13 +89,4 @@ function print_instance(instance::Instance_BCSP)
     end
 end
 
-### TESTS ####
-
-x = Variable("x", collect(Float64, 0:5), undef)
-y = Variable("y", collect(0:5), undef)
-
-c1 = BConstraint("c1", collect(["x", "y"]), collect([(0,0), (0,1), (1,0)]))
-c2 = BConstraint("c2", collect(["x", "y"]), collect([(1,0),(2,1)]))
-
-instance = Instance_BCSP(collect([x,y]),collect([c1,c2]))
-print_instance(instance)
+end
