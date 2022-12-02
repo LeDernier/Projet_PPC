@@ -2,7 +2,8 @@ include("backtrack.jl")
 include("wrapper.jl")
 
 println("Let's test the wrapper")
-alldiff(instance)
+# alldiff(instance)
+diff(x, y, 1, 1, 2, instance)
 print_instance(instance)
 
 

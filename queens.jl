@@ -13,7 +13,7 @@ function queens_instance(n::Int)::Instance_BCSP
     instance = Instance_BCSP(variables,[])
 
     # add the constraints
-    alldiff(instance)
+    all_diff(instance)
     for i in 1:n-1
         var1 = variables[i]
         name1 = var1.name
