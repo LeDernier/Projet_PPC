@@ -1,6 +1,6 @@
 include("model.jl")
 
-function backtrack(instance::Instance_BCSP)::Union{Tuple{Bool, Instance_BCSP}, Tuple{Bool, UndefInitializer}}
+function backtrack(instance::Instance_BCSP)::Bool
 
     # check that all constraints are respected
     for c in instance.constraints
@@ -17,7 +17,7 @@ function backtrack(instance::Instance_BCSP)::Union{Tuple{Bool, Instance_BCSP}, T
                 end
             end
             if !found_feasible_point
-                return false, undef
+                return false
             end
         end
     end
@@ -25,50 +25,35 @@ function backtrack(instance::Instance_BCSP)::Union{Tuple{Bool, Instance_BCSP}, T
     # check that some variables are undefined
     completed = true
     undefined_var = undef
+    domain_size = 10000000
     for var in instance.variables
         if var.value == undef
             completed = false
-            undefined_var = var
-            break
+            if length(var.domain) < domain_size
+                undefined_var = var
+            end
         end
     end
     if completed
-        return true, instance
+        return true
     end
 
-    # here, undefined_var is the first variable undefined in the vector of the instance.
+    # here, undefined_var is the variable with the smallest domain.
     # we could improve that in the future
+    # for instance with the variables with the most constraints
+
+    # TODO : add arc consistency 
+    # -> forward checking or maintain-arc-consistency or in between both
+    # idea: maintain-arc-consistency only at the root and then forward checking here
 
     i_max = undefined_var.index_domain
     for current_value in undefined_var.domain[1:i_max]
         undefined_var.value = current_value
         if backtrack(instance)[1]
-            return true, instance
+            return true
         end
         undefined_var.value = undef
     end
 
-    return false, undef
+    return false
 end
-
-### TESTS ####
-
-println("Let's test the backtrack algorithm")
-
-found_sol, instance = backtrack(instance)
-println("found a solution? ", found_sol)
-print_instance(instance)
-
-z = Variable("z", 1, collect(Float64, 0:5), undef)
-t = Variable("t", 2, collect(0:5), undef)
-
-c3 = BConstraint("c3", ("z", "t"), (1, 2), collect([(0,0), (0,1), (1,0)]))
-c4 = BConstraint("c4", ("z", "t"), (1, 2), collect([(3,0),(2,1)]))
-
-instance2 = Instance_BCSP(collect([z,t]),collect([c3,c4]))
-print_instance(instance2)
-
-println("Let's test the backtrack algorithm on the second instance")
-
-found_sol, instance2 = backtrack(instance2)
-println("found a solution? ", found_sol)

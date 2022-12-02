@@ -1,3 +1,5 @@
+# TODO : REMOVE THIS FILE
+
 struct Domain
     varID::Int64
     possibleValues::Vector{Float64}

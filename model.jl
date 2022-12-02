@@ -15,13 +15,6 @@ mutable struct Variable{DataType<:Number}
         return new{DataType}(name, index, domain, value, index_domain)
     end
 
-#=     function Variable(index::Integer, domain::Vector{DataType}, value::Union{DataType,UndefInitializer}) where DataType
-        """
-            Constructor of a variable identified by its index in the problem instance.
-        """
-        index_domain = init_index_domain(domain)
-        return new{DataType}(Any, index, domain, value, index_domain)
-    end =#
 end
 
 
@@ -40,7 +33,7 @@ mutable struct BConstraint
         Binary constraint.
     """
     name::String
-    variable_names::Tuple{String, String}      # variable names
+    variable_names::Tuple{String, String}      # variable names, to remove if not used
     variable_indices::Tuple{Int, Int}
     feasible_points::Union{Vector{Tuple{Int64, Int64}}, Vector{Tuple{Float64, Float64}}}
 
@@ -131,7 +124,7 @@ end
 
 ### TESTS ####
 
-x = Variable("x", 1, collect(Float64, 0:5), undef)
+x = Variable("x", 1, collect(0:5), undef)
 y = Variable("y", 2, collect(0:5), undef)
 
 c1 = BConstraint("c1", ("x", "y"), (1, 2), collect([(0,0), (0,1), (1,0)]))
