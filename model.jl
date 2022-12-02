@@ -2,26 +2,26 @@
 
 mutable struct Variable{DataType<:Number}
     name::Any                           # variable name
-    index::Any                          # index of the variable in the problem instance
+    index::Int                          # index of the variable in the problem instance
     domain::Vector{DataType}            # domain / set of feasible values
     value::Any                          # current value
     index_domain::Integer               # maximal index to search in the domain
 
-    function Variable(name::String, domain::Vector{DataType}, value::Union{DataType,UndefInitializer}) where DataType
+    function Variable(name::String, index::Integer, domain::Vector{DataType}, value::Union{DataType,UndefInitializer}) where DataType
         """
-            Constructor of a variable identified by his name.
+            Constructor of a variable identified by its name and index.
         """
         index_domain = init_index_domain(domain)
-        return new{DataType}(name, undef,domain, value, index_domain)
+        return new{DataType}(name, index, domain, value, index_domain)
     end
 
-    function Variable(index::Integer, domain::Vector{DataType}, value::Union{DataType,UndefInitializer}) where DataType
+#=     function Variable(index::Integer, domain::Vector{DataType}, value::Union{DataType,UndefInitializer}) where DataType
         """
-            Constructor of a variable identified by his index in the problem instance.
+            Constructor of a variable identified by its index in the problem instance.
         """
         index_domain = init_index_domain(domain)
         return new{DataType}(Any, index, domain, value, index_domain)
-    end
+    end =#
 end
 
 
@@ -40,11 +40,12 @@ mutable struct BConstraint
         Binary constraint.
     """
     name::String
-    variables::Vector{String}       # variable names
+    variable_names::Tuple{String, String}      # variable names
+    variable_indices::Tuple{Int, Int}
     feasible_points::Union{Vector{Tuple{Int64, Int64}}, Vector{Tuple{Float64, Float64}}}
 
-    function BConstraint(name::String, variables::Vector{String}, feasible_points::Union{Vector{Tuple{Int64, Int64}}, Vector{Tuple{Float64, Float64}}})
-        return new(name, variables, feasible_points)
+    function BConstraint(name::String, variable_names::Tuple{String, String}, variable_indices::Tuple{Int, Int}, feasible_points::Union{Vector{Tuple{Int64, Int64}}, Vector{Tuple{Float64, Float64}}})
+        return new(name, variable_names, variable_indices, feasible_points)
     end
 end
 
@@ -130,11 +131,11 @@ end
 
 ### TESTS ####
 
-x = Variable("x", collect(Float64, 0:5), undef)
-y = Variable("y", collect(0:5), undef)
+x = Variable("x", 1, collect(Float64, 0:5), undef)
+y = Variable("y", 2, collect(0:5), undef)
 
-c1 = BConstraint("c1", collect(["x", "y"]), collect([(0,0), (0,1), (1,0)]))
-c2 = BConstraint("c2", collect(["x", "y"]), collect([(1,0),(2,1)]))
+c1 = BConstraint("c1", ("x", "y"), (1, 2), collect([(0,0), (0,1), (1,0)]))
+c2 = BConstraint("c2", ("x", "y"), (1, 2), collect([(1,0),(2,1)]))
 
 instance = Instance_BCSP(collect([x,y]),collect([c1,c2]))
 print_instance(instance)
