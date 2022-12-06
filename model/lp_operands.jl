@@ -67,6 +67,8 @@ module LpOperands
         repr = replace(repr, "+ -" => "- ")
         repr = replace(repr, "+ 0.0" => "")
         repr = replace(repr, "- 0.0" => "")
+        repr = replace(repr, "+ 0" => "")
+        repr = replace(repr, "- 0" => "")
         return repr
     end
 

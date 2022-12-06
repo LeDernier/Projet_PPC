@@ -18,6 +18,7 @@ module BOperands
                 Constructor of a variable identified by its name.
             """
             index_domain = init_index_domain(domain)
+            domain = [convert(Float64, val) for val in domain]
             return new(ID, domain, value, index_domain)
         end
     end
@@ -44,8 +45,18 @@ module BOperands
         feasible_points::Vector{Tuple{<:Real, <:Real}}
 
         function BConstraint(varsnames::Vector{String}, feasible_points::Vector{<:Tuple})
+            """
+                Constructor of an unnamed constraint.
+            """
             num_bConstraints[] += 1
             name = "bC_"*string(num_bConstraints[])         # bC := binary constraint
+            return new(name, varsnames, feasible_points)
+        end
+
+        function BConstraint(name::String, varsnames::Vector{String}, feasible_points::Vector{<:Tuple})
+            """
+                Constructor of a named constraint.
+            """
             return new(name, varsnames, feasible_points)
         end
     end

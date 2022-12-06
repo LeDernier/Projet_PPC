@@ -4,13 +4,16 @@ module Instance
     include("cp_operands.jl")
     include("lp_operands.jl")
     include("operations.jl")
+    
 
     import .BOperands: Variable, Variables, BConstraint
     import .LpOperands: LpAffineExpression, LpConstraint, _varMapType
+    
 
     export Variable,Variables, BConstraint,
     +, -, *,
     Instance_BCSP, addVariables, addConstraints, addConstraint, nbConstraints, nbVariables, makeExplicit
+    
 
     ### INSTANCE OF A CSP ###
 
@@ -48,6 +51,12 @@ module Instance
             return new(vars, constrs)
         end
     end
+    
+    ## Include wrapper after the definition of Instance_BCSP
+
+    include("wrapper.jl")
+    import .Wrapper: all_diff, diff, eq, inf_eq
+    export all_diff, diff, eq, inf_eq
 
     function nbVariables(instance::Instance_BCSP)
         """

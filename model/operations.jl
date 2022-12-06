@@ -18,18 +18,21 @@ module Operations
 
     ## Operations between variables and constants ##
     function Base.:-(x::Variable)
-        return LpAffineExpression(OrderedDict(varMap(x) => -1))
+        return LpAffineExpression(OrderedDict(varMap(x) => -1.0))
     end
     function Base.:+(x::Variable, a::Real)
         constant = convert(Float64, a)
-        return LpAffineExpression(LpAffineExpression(OrderedDict(varMap(x) => 1)), constant)
+        return LpAffineExpression(LpAffineExpression(OrderedDict(varMap(x) => 1.0)), constant)
     end
     function Base.:+(a::Real, x::Variable)
         constant = convert(Float64, a)
-        return LpAffineExpression(LpAffineExpression(OrderedDict(varMap(x) => 1)), constant)
+        return LpAffineExpression(LpAffineExpression(OrderedDict(varMap(x) => 1.0)), constant)
     end
     function Base.:+(x::Variable, y::Variable)
-        return LpAffineExpression(OrderedDict(varMap(x) => 1, varMap(y) => 1))
+        return LpAffineExpression(OrderedDict(varMap(x) => 1.0, varMap(y) => 1.0))
+    end
+    function Base.:-(x::Variable, y::Variable)
+        return x + (-y)
     end
     function Base.:*(a::Real, x::Variable)
         constant = convert(Float64, a)
@@ -43,21 +46,32 @@ module Operations
 
     ## Operations between LpAffineExpressions
     Base.:-(expr::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = (-1)*LpAffineExpression(expr, expr.constant)
+    
     Base.:+(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = addConstantInPlace(expr, a)
     Base.:+(a::Real, expr::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = addConstantInPlace(expr, a)
+    Base.:+(x::Variable, expr::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = addInPlace(expr, LpAffineExpression(OrderedDict(varMap(x) => 1.0)))
+    Base.:+(expr::LpAffineExpression{K,V}, x::Variable) where {K<:_varMapType,V<:Real} = addInPlace(expr, LpAffineExpression(OrderedDict(varMap(x) => 1.0)))
     Base.:+(expr1::LpAffineExpression{K,V}, expr2::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = addInPlace(expr1, expr2)
+    
     Base.:-(expr1::LpAffineExpression{K,V}, expr2::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = subInPlace(expr1, expr2)
     Base.:-(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = addConstantInPlace(expr, -a)
     Base.:-(a::Real, expr::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = addConstantInPlace(expr, -a)
+    Base.:-(expr::LpAffineExpression{K,V}, x::Variable) where {K<:_varMapType,V<:Real} = subInPlace(expr, LpAffineExpression(OrderedDict(varMap(x) => -1.0)))
+    Base.:-(x::Variable, expr::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = -subInPlace(expr, LpAffineExpression(OrderedDict(varMap(x) => -1.0)))
     Base.:*(expr1::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = mulInPlace(expr1, a)
     Base.:*(a::Real, expr1::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = mulInPlace(expr1, a)
 
     ## Relational operations (generating a linear constraints)
+    #= Base.:(==)(x::Variable, y::Variable) = LpConstraint(x - y, 0, ==)
+    Base.:(<=)(x::Variable, y::Variable) = LpConstraint(x - y, 0, <=)
+    Base.:(>=)(x::Variable, y::Variable) = LpConstraint(x - y, 0, >=)
+    Base.:(!=)(x::Variable, y::Variable) = LpConstraint(x - y, 0, !=) =#
+    
 
-    Base.:(==)(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = LpConstraint(expr, a, ==)
-    Base.:(<=)(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = LpConstraint(expr, a, <=)
-    Base.:(=>)(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = LpConstraint(expr, a, =>)
-    Base.:(!=)(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = LpConstraint(expr, a, !=)
+    Base.:(==)(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = LpConstraint(expr, convert(Float64, a), ==)
+    Base.:(<=)(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = LpConstraint(expr, convert(Float64, a), <=)
+    Base.:(=>)(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = LpConstraint(expr, convert(Float64, a), =>)
+    Base.:(!=)(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = LpConstraint(expr, convert(Float64, a), !=)
 
     function addInPlace(expr1::LpAffineExpression{K,V}, expr2::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real}
         """
