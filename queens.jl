@@ -1,4 +1,5 @@
-include("model.jl")
+include("model/instance.jl")
+using .Instance
 
 function queens_instance(n::Int)::Instance_BCSP
 

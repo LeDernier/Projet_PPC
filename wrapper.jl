@@ -1,4 +1,5 @@
-include("model.jl")
+include("model/instance.jl")
+using .Instance
 
 function all_diff(instance::Instance_BCSP)
     nbVarDif = length(instance.variables)
@@ -41,4 +42,3 @@ function inf_eq(var1::Variable, var2::Variable, coef1, coef2, value, instance::I
     values = [(x, y) for x in var1.domain for y in var2.domain if coef1*x+coef2*y <= value]
     c = BConstraint(constraint_name, (name1, name2), (var1.index, var2.index), values)
     push!(instance.constraints, c)
-end

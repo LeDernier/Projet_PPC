@@ -1,5 +1,5 @@
-include("backtrack.jl")
-include("wrapper.jl")
+include("../backtrack.jl")
+include("../wrapper.jl")
 
 println("Let's test the wrapper")
 # alldiff(instance)
