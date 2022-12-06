@@ -1,4 +1,4 @@
-include("model.jl")
+include("model/instance.jl")
 
 function backtrack(instance::Instance_BCSP)::Bool
 
