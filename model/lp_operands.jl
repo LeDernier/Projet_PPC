@@ -67,8 +67,8 @@ module LpOperands
         repr = replace(repr, "+ -" => "- ")
         repr = replace(repr, "+ 0.0" => "")
         repr = replace(repr, "- 0.0" => "")
-        repr = replace(repr, "+ 0" => "")
-        repr = replace(repr, "- 0" => "")
+        repr = replace(repr, "+ 0" => "")           # TODO : remove it when ensuring only float values
+        repr = replace(repr, "- 0" => "")           # TODO : remove it when ensuring only float values
         return repr
     end
 

@@ -1,7 +1,7 @@
 include("../benchmark/queens.jl")
 
-fourQueensCP = queens_instance(2) 
-fourQueensLP = queens_lp(2)
+fourQueensCP = queens_instance(3) 
+fourQueensLP = queens_lp(3)
 
 # TODO : find why 'nothing' is being printed at the end of the string representation of an instance_BCSP
 println("fourQueensCP, ", fourQueensCP)

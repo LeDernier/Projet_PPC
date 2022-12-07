@@ -1,13 +1,14 @@
-include("model/instance.jl")
+include("../model/instance.jl")
+using .Instance
 
 function backtrack(instance::Instance_BCSP)::Bool
 
     # check that all constraints are respected
     for c in instance.constraints
-        idx1 = c.variable_indices[1]
-        idx2 = c.variable_indices[2]
-        var1 = instance.variables[idx1].value
-        var2 = instance.variables[idx2].value
+        id1 = c.varsIDs[1]
+        id2 = c.varsIDs[2]
+        var1 = getVariable(instance, id1).value
+        var2 = getVariable(instance, id2).value
         if var1 != undef && var2 != undef
             found_feasible_point = false
             for values in c.feasible_points
@@ -26,7 +27,7 @@ function backtrack(instance::Instance_BCSP)::Bool
     completed = true
     undefined_var = undef
     domain_size = 10000000
-    for var in instance.variables
+    for var in values(instance.variables)
         if var.value == undef
             completed = false
             if length(var.domain) < domain_size
@@ -34,6 +35,7 @@ function backtrack(instance::Instance_BCSP)::Bool
             end
         end
     end
+
     if completed
         return true
     end

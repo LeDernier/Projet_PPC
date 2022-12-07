@@ -12,7 +12,8 @@ module Instance
 
     export Variable,Variables, BConstraint,
     +, -, *,
-    Instance_BCSP, addVariables, addConstraints, addConstraint, nbConstraints, nbVariables, makeExplicit
+    Instance_BCSP, addVariables, getVariable, addConstraints, addConstraint, nbConstraints, nbVariables, makeExplicit,
+    all_diff, diff, eq, inf_eq
     
 
     ### INSTANCE OF A CSP ###
@@ -21,14 +22,14 @@ module Instance
         """
             Instance of a binary constraint satisfaction problem.
         """
-        variables::Vector{Variable}
+        variables::Dict{Union{String,Int}, Variable}
         constraints::Vector{BConstraint}
 
         function Instance_BCSP()
             """
                 Empty constructor (the variables and constraints are added later).
             """
-            vars = Vector{Variable}()
+            vars = Dict{Union{String,Int}, Variable}()
             constrs = Vector{BConstraint}()
             return new(vars, constrs)
         end
@@ -37,7 +38,7 @@ module Instance
             """
                 Unconstraint constructor (the constraints can be added later).
             """
-            vars = variables
+            vars = Dict(var.ID => var for var in variables)
             constrs = Vector{BConstraint}()
             return new(vars, constrs)
         end
@@ -46,7 +47,7 @@ module Instance
             """
                 Standard constructor.
             """
-            vars = variables
+            vars = Dict(var.ID => var for var in variables)
             constrs = constraints
             return new(vars, constrs)
         end
@@ -56,7 +57,6 @@ module Instance
 
     include("wrapper.jl")
     import .Wrapper: all_diff, diff, eq, inf_eq
-    export all_diff, diff, eq, inf_eq
 
     function nbVariables(instance::Instance_BCSP)
         """
@@ -74,8 +74,15 @@ module Instance
 
     function addVariables(instance::Instance_BCSP, variables::Vector{Variable})
         for variable in variables
-            push!(instance.variables, variables)
+            if haskey(instance.variables, variable.ID)
+                @warn "A variable has been replaced : same ID."
+            end 
+            instance.variables[variable.ID] = variables
         end
+    end
+
+    function getVariable(instance::Instance_BCSP, varID::Union{String,Int})
+        return instance.variables[varID]
     end
 
 
@@ -95,7 +102,7 @@ module Instance
 
     function reprInstance(instance::Instance_BCSP)
         println("\nVariables:")
-        for var in instance.variables
+        for var in keys(instance.variables)
             println(var)
         end
         println("\nConstraints:")
@@ -141,57 +148,6 @@ module Instance
 
         # return the list of variables ids (the order) and the feasible values
         return feasibleValues
-    end
-
-    function makeExplicit(constr::LpConstraint, vars::Vector{Variable})
-        # DEPRECATED 
-        # TODO : remove when makeExplicit(::LpConstraint) will be available
-        """ 
-            Returns the values of variables that satisfy the linear constraint.
-
-            constr: Linear constraint.
-            vars: Vector of variables appearing in the constraint.
-        """
-
-        # get the positions in 'vars' of those variables appearing in the constraint
-        posVarsInConstr = Dict()
-        pos_var = 1
-        for var in vars
-            if haskey(constr.lhs.terms, var.ID)
-                posVarsInConstr[var.ID] = pos_var
-            end
-            pos_var += 1
-        end
-
-        # create a dictionary (k => v) such that k=var.ID and v=var.feasible_points
-        varsIDs = Vector{String}()
-        varsValues = []
-        for (varID,varCoeff) in constr.lhs.terms
-            # assert that all the variables of the constraint have been passed in 'vars'
-            if ~(haskey(posVarsInConstr, varID))
-                error("Trying to evaluate a LpAffineExpression without the value of some variables.")
-            end
-            push!(varsIDs, varID)
-            push!(varsValues, vars[posVarsInConstr[varID]].domain)
-        end
-        
-        cartesianProduct = Iterators.product((varValues for varValues in varsValues)...)
-        feasibleValues = Vector{Tuple}()
-        for point in cartesianProduct
-            # calculate the value of the constraint left-hand side using the fact that the expression is ordered
-            valueLHS = constr.lhs.constant
-            for i in range(1, length(point))
-                valueLHS += point[i]*constr.lhs.terms[varsIDs[i]]
-            end
-            
-            # add the point to the feasible points if it satisfies the constraint
-            if constr.relation(valueLHS,constr.rhs)
-                push!(feasibleValues, point)
-            end 
-        end
-
-        # return the list of variables ids (the order) and the feasible values
-        return varsIDs, feasibleValues
     end
 
     function addConstraints(instance::Instance_BCSP, constraints::Vector{<:LpConstraint})

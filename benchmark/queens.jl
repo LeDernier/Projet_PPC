@@ -1,6 +1,8 @@
 include("../model/instance.jl")
 using .Instance
 
+export queens_instance
+
 function queens_instance(n::Int)::Instance_BCSP
 
     # create the variables
@@ -14,7 +16,8 @@ function queens_instance(n::Int)::Instance_BCSP
     instance = Instance_BCSP(variables)
 
     # add the constraints
-    all_diff(instance)
+    #all_diff(instance)                         # TODO : remove
+    addConstraints(instance, all_diff(variables))
     for i in 1:n-1
         var1 = variables[i]
         for j in i+1:n
@@ -23,7 +26,8 @@ function queens_instance(n::Int)::Instance_BCSP
             c = BConstraint("diag$i$j", [var1.ID, var2.ID], values)
             push!(instance.constraints, c)
         end
-    end
+    end  
+
     return instance
 end
 
@@ -40,7 +44,7 @@ function queens_lp(n::Int)::Instance_BCSP
     instance = Instance_BCSP(variables)
 
     # add the constraints
-    all_diff(instance)
+    addConstraints(instance, all_diff(variables))
     for i in 1:n-1
         var_i = variables[i]
         for j in i+1:n

@@ -41,29 +41,33 @@ module BOperands
             Explicit binary constraint.
         """
         name::String
-        varsnames::Vector{String}       # variable names
+        varsIDs::Vector{<:Union{String,Int}}       # variable names
         feasible_points::Vector{Tuple{<:Real, <:Real}}
 
-        function BConstraint(varsnames::Vector{String}, feasible_points::Vector{<:Tuple})
+        function BConstraint(varsIDs::Vector{String}, feasible_points::Vector{<:Tuple})
             """
                 Constructor of an unnamed constraint.
             """
             num_bConstraints[] += 1
             name = "bC_"*string(num_bConstraints[])         # bC := binary constraint
-            return new(name, varsnames, feasible_points)
+            return new(name, varsIDs, feasible_points)
         end
 
-        function BConstraint(name::String, varsnames::Vector{String}, feasible_points::Vector{<:Tuple})
+        function BConstraint(name::String, varsIDs::Vector{String}, feasible_points::Vector{<:Tuple})
             """
                 Constructor of a named constraint.
             """
-            return new(name, varsnames, feasible_points)
+            return new(name, varsIDs, feasible_points)
         end
     end
 
     ## LIST OF VARIABLES ##
 
     mutable struct Variables
+        """
+            # DEPRECATED ?
+            TODO : evaluate if this is useful or not. If not, remove it.
+        """
         array::Vector{Variable}
         function Variables(name::String, indices::Vector{Int}, domain::Vector{<:Real}, value::Union{<:Real,UndefInitializer})
             """
