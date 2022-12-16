@@ -1,61 +1,68 @@
-include("../model/instance.jl")
-using .Instance
+module Solver
 
-function backtrack(instance::Instance_BCSP)::Bool
+    #include("../model/instance.jl")                    # this should only be included in the main file
+    #using ..Instance: Instance_BCSP, getVariable        # .. because the include(..model/instance.jl) should be done in the file that includes this file
+    #import ..Instance
+    using ..Instance
+    export backtrack
 
-    # check that all constraints are respected
-    for c in instance.constraints
-        id1 = c.varsIDs[1]
-        id2 = c.varsIDs[2]
-        var1 = getVariable(instance, id1).value
-        var2 = getVariable(instance, id2).value
-        if var1 != undef && var2 != undef
-            found_feasible_point = false
-            for values in c.feasible_points
-                if var1 == values[1] && var2 == values[2]
-                    found_feasible_point = true
-                    break
+    function backtrack(instance::Instance_BCSP)::Bool
+
+        # check that all constraints are respected
+        for c in instance.constraints
+            id1 = c.varsIDs[1]
+            id2 = c.varsIDs[2]
+            var1 = Instance.getVariable(instance, id1).value
+            var2 = Instance.getVariable(instance, id2).value
+            if var1 != undef && var2 != undef
+                found_feasible_point = false
+                for values in c.feasible_points
+                    if var1 == values[1] && var2 == values[2]
+                        found_feasible_point = true
+                        break
+                    end
+                end
+                if !found_feasible_point
+                    return false
                 end
             end
-            if !found_feasible_point
-                return false
+        end
+
+        # check that some variables are undefined
+        completed = true
+        undefined_var = undef
+        domain_size = 10000000
+        for var in values(instance.variables)
+            if var.value == undef
+                completed = false
+                if length(var.domain) < domain_size
+                    undefined_var = var
+                end
             end
         end
-    end
 
-    # check that some variables are undefined
-    completed = true
-    undefined_var = undef
-    domain_size = 10000000
-    for var in values(instance.variables)
-        if var.value == undef
-            completed = false
-            if length(var.domain) < domain_size
-                undefined_var = var
-            end
-        end
-    end
-
-    if completed
-        return true
-    end
-
-    # here, undefined_var is the variable with the smallest domain.
-    # we could improve that in the future
-    # for instance with the variables with the most constraints
-
-    # TODO : add arc consistency 
-    # -> forward checking or maintain-arc-consistency or in between both
-    # idea: maintain-arc-consistency only at the root and then forward checking here
-
-    i_max = undefined_var.index_domain
-    for current_value in undefined_var.domain[1:i_max]
-        undefined_var.value = current_value
-        if backtrack(instance)[1]
+        if completed
             return true
         end
-        undefined_var.value = undef
+
+        # here, undefined_var is the variable with the smallest domain.
+        # we could improve that in the future
+        # for instance with the variables with the most constraints
+
+        # TODO : add arc consistency 
+        # -> forward checking or maintain-arc-consistency or in between both
+        # idea: maintain-arc-consistency only at the root and then forward checking here
+
+        i_max = undefined_var.index_domain
+        for current_value in undefined_var.domain[1:i_max]
+            undefined_var.value = current_value
+            if backtrack(instance)[1]
+                return true
+            end
+            undefined_var.value = undef
+        end
+
+        return false
     end
 
-    return false
 end

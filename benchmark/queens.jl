@@ -1,58 +1,62 @@
-include("../model/instance.jl")
-using .Instance
 
-export queens_instance
+module Benchmark
 
-function queens_instance(n::Int)::Instance_BCSP
+    #include("../model/instance.jl")                # this should be included in the main file
+    using ..Instance: Instance_BCSP, Variable, all_diff, addConstraints, BConstraint
 
-    # create the variables
-    variables = Vector{Variable}()
-    for i in 1:n
-        line_i = Variable("line $i", collect(1:n), undef)
-        push!(variables, line_i)
-    end
+    export queens_instance
 
-    # create the instance
-    instance = Instance_BCSP(variables)
+    function queens_instance(n::Int)::Instance_BCSP
 
-    # add the constraints
-    #all_diff(instance)                         # TODO : remove
-    addConstraints(instance, all_diff(variables))
-    for i in 1:n-1
-        var1 = variables[i]
-        for j in i+1:n
-            var2 = variables[j]
-            values = [(x, y) for x in var1.domain for y in var2.domain if abs(x-y) != j-i]
-            c = BConstraint("diag$i$j", [var1.ID, var2.ID], values)
-            push!(instance.constraints, c)
+        # create the variables
+        variables = Vector{Variable}()
+        for i in 1:n
+            line_i = Variable("line $i", collect(1:n), undef)
+            push!(variables, line_i)
         end
-    end  
 
-    return instance
-end
+        # create the instance
+        instance = Instance_BCSP(variables)
 
-function queens_lp(n::Int)::Instance_BCSP
+        # add the constraints
+        #all_diff(instance)                         # TODO : remove
+        addConstraints(instance, all_diff(variables))
+        for i in 1:n-1
+            var1 = variables[i]
+            for j in i+1:n
+                var2 = variables[j]
+                values = [(x, y) for x in var1.domain for y in var2.domain if abs(x-y) != j-i]
+                c = BConstraint("diag$i$j", [var1.ID, var2.ID], values)
+                push!(instance.constraints, c)
+            end
+        end  
 
-    # create the variables
-    variables = Vector{Variable}()
-    for i in 1:n
-        line_i = Variable("line $i", collect(1:n), undef)
-        push!(variables, line_i)
+        return instance
     end
 
-    # create the instance
-    instance = Instance_BCSP(variables)
+    function queens_lp(n::Int)::Instance_BCSP
 
-    # add the constraints
-    addConstraints(instance, all_diff(variables))
-    for i in 1:n-1
-        var_i = variables[i]
-        for j in i+1:n
-            var_j = variables[j]
-            addConstraint(instance, var_i - var_j != j - i)
-            addConstraint(instance, var_j - var_i != j - i)
+        # create the variables
+        variables = Vector{Variable}()
+        for i in 1:n
+            line_i = Variable("line $i", collect(1:n), undef)
+            push!(variables, line_i)
         end
-    end
 
-    return instance
+        # create the instance
+        instance = Instance_BCSP(variables)
+
+        # add the constraints
+        addConstraints(instance, all_diff(variables))
+        for i in 1:n-1
+            var_i = variables[i]
+            for j in i+1:n
+                var_j = variables[j]
+                addConstraint(instance, var_i - var_j != j - i)
+                addConstraint(instance, var_j - var_i != j - i)
+            end
+        end
+
+        return instance
+    end
 end
