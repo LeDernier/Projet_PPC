@@ -60,6 +60,13 @@ module BOperands
             return new(name, varsIDs, feasible_points)
         end
     end
+    
+    Base.show(io::IO, c::BConstraint) = print(io, reprBConstraint(c))
+
+    function reprBConstraint(c::BConstraint)
+        repr = "BConstraint(name="*string(c.name)*"; variables: "*string(c.varsIDs)*")"
+        return repr
+    end
 
     ## LIST OF VARIABLES ##
 

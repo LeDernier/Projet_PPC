@@ -6,12 +6,12 @@ module Instance
     include("operations.jl")
 
     import .BOperands: Variable, Variables, BConstraint
-    using .LpOperands: LpAffineExpression, LpConstraint, _varMapType
+    using .LpOperands: LpAffineExpression, LpConstraint, +, -, *, ==, <=, >=, !=, _varMapType
     
 
     export Variable,Variables, BConstraint,
-    +, -, *,
-    Problem, addVariables, getVariable, addConstraints, addConstraint, nbConstraints, nbVariables, makeExplicit
+    +, -, *, ==, <=, >=, !=,
+    Problem, addVariables, getVariable, addConstraints, addConstraint, nbConstraints, nbVariables, makeExplicitBinary, makeExplicitUnary
     
 
     ### INSTANCE OF A CSP ###
@@ -22,7 +22,7 @@ module Instance
             or an optimization problem.
         """
         variables::Dict{Union{String,Int}, Variable}
-        constraints::Vector{BConstraint}
+        constraints::Dict{Union{String,Int}, BConstraint}
         objective::Union{LpAffineExpression, Nothing}   # optional
         sense::Integer                                  # 0: satisfaction, 1: minimization, -1: maximization
 
@@ -31,21 +31,21 @@ module Instance
                 Empty constructor (the objective, variables and constraints are added later).
             """
             vars = Dict{Union{String,Int}, Variable}()
-            constrs = Vector{BConstraint}()
+            constrs = Dict{Union{String,Int},BConstraint}()
             objective = nothing
             sense = 0
 
             return new(vars, constrs, objective, sense)
         end
         
-        function Problem(variables::Vector{Variable}, 
+        function Problem(variables::AbstractArray{Variable}, 
                         objective::Union{LpAffineExpression, Nothing}=nothing, 
                         sense=0)
             """
                 Unconstraint constructor (the constraints can be added later).
             """
             vars = Dict(var.ID => var for var in variables)
-            constrs = Vector{BConstraint}()
+            constrs = Dict{Union{String,Int},BConstraint}()
             if isnothing(objective) || sense == 0
                 sense = 0
                 objective = nothing
@@ -54,7 +54,7 @@ module Instance
             return new(vars, constrs, objective, sense)
         end
 
-        function Problem(variables::Vector{Variable}, 
+        function Problem(variables::AbstractArray{Variable}, 
                         constraints::Vector{BConstraint}, 
                         objective::Union{LpAffineExpression, Nothing}=nothing, 
                         sense=0)
@@ -62,7 +62,7 @@ module Instance
                 Standard constructor.
             """
             vars = Dict(var.ID => var for var in variables)
-            constrs = constraints
+            constrs = Dict(constr.name => constr for constr in constraints)
             if isnothing(objective) || sense == 0
                 sense = 0
                 objective = nothing
@@ -104,7 +104,10 @@ module Instance
 
     function addConstraints(instance::Problem, constraints::Vector{BConstraint})
         for constraint in constraints
-            push!(instance.constraints, constraint)
+            if ~(constraint.name in keys(instance.constraints))
+                #push!(instance.constraints, constraint)        # TODO: remove
+                instance.constraints[constraint.name] = constraint
+            end
         end
     end
 
@@ -115,13 +118,21 @@ module Instance
     ## String representation ##
 
     function reprInstance(instance::Problem)
-        println("\nVariables:")
-        for var in keys(instance.variables)
-            println(var)
+        maxVarsToShow = 100
+        maxConstrToShow = 600
+        numV = length(instance.variables) # number of variables
+        println("\nVariables: "*string(numV))
+        if numV <= maxVarsToShow
+            for var in values(instance.variables)
+                println(string(var)*": "*string(var.value))
+            end
         end
-        println("\nConstraints:")
-        for c in instance.constraints
-            println(c)
+        numC = length(instance.constraints) # number of constraints
+        println("\nConstraints: "*string(numC))
+        if numC <= maxConstrToShow
+            for c in values(instance.constraints)
+                println(c)
+            end
         end
     end
 
@@ -130,9 +141,9 @@ module Instance
 
     ### ADD A LINEAR CONSTRAINT TO THE INSTANCE ###
 
-    function makeExplicit(constr::LpConstraint)
+    function makeExplicitBinary(constr::LpConstraint)
         """ 
-            constr: Linear constraint having a reference to the variables appearing in 
+            constr: Linear constraint having a reference to the two variables appearing in 
             the right-hand side.
         """
 
@@ -166,9 +177,13 @@ module Instance
 
     function addConstraints(instance::Problem, constraints::Vector{<:LpConstraint})
         for constraint in constraints
-            varsnames = [var.ID for var in collect(keys(constraint.lhs.terms))]
-            feasible_points = makeExplicit(constraint)
-            push!(instance.constraints, BConstraint(varsnames, feasible_points))
+            if ~(constraint.name in instance.constraints)
+                varsnames = [var.ID for var in collect(keys(constraint.lhs.terms))]
+                feasible_points = makeExplicitBinary(constraint)
+                bconstr = BConstraint(varsnames, feasible_points)
+                #push!(instance.constraints, bconstr)       # TODO: remove
+                instance.constraints[bconstr.name] = bconstr
+            end
         end
     end
 
