@@ -30,7 +30,7 @@ module Solver
     function backtrack(instance::Problem)::Bool
 
         # check that all constraints are respected
-        for c in instance.constraints
+        for c in values(instance.constraints)
             id1 = c.varsIDs[1]
             id2 = c.varsIDs[2]
             var1 = getVariable(instance, id1).value

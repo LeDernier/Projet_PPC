@@ -1,13 +1,13 @@
 include("../model/instance.jl")         # it should be loaded whenever needed for this module or imported modules
 include("../solver/solver.jl")
 include("../model/wrapper.jl")
-include("../benchmark/queens.jl")
+include("../benchmark/benchmark.jl")
 
 module TestBacktrack
 
     using ..Instance: Variable, BConstraint, Problem, addConstraints, diff
     using ..Solver
-    using ..Benchmark: queens_cp
+    using ..Benchmark: queens_cp, sudoku2D
     using ..Wrapper: different
 
     ### WRAPPER ###
@@ -42,7 +42,10 @@ module TestBacktrack
 
     found_sol = backtrack(instance2)
     println("found a solution? ", found_sol)
-     
+    
+
+    ## Queens ##
+
     println("\nLet's test the backtrack algorithm on the queens")
     n=8
     instance3 = queens_cp(n)

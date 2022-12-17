@@ -36,7 +36,7 @@ module TestModel
     println("expr: ", expr)
     constraint = expr == -1
     println("constraint: ", constraint)
-    feasPoints = makeExplicit(constraint)
+    feasPoints = makeExplicitBinary(constraint)
     println("\nFeasible points:\n", feasPoints)
 
     instance1 = Problem([x,y])

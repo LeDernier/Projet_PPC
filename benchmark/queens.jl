@@ -2,7 +2,7 @@
 using ..Instance: Problem, Variable, addConstraint, addConstraints, BConstraint
 using ..Wrapper: all_different
 
-function Benchmark.queens_cp(n::Int)::Problem
+function queens_cp(n::Int)::Problem
 
     # create the variables
     variables = Vector{Variable}()
@@ -23,14 +23,14 @@ function Benchmark.queens_cp(n::Int)::Problem
             var2 = variables[j]
             values = [(x, y) for x in var1.domain for y in var2.domain if abs(x-y) != j-i]
             c = BConstraint("diag$i$j", [var1.ID, var2.ID], values)
-            push!(instance.constraints, c)
+            addConstraint(instance, c)
         end
     end  
 
     return instance
 end
 
-function Benchmark.queens_lp(n::Int)::Problem
+function queens_lp(n::Int)::Problem
 
     # create the variables
     variables = Vector{Variable}()
