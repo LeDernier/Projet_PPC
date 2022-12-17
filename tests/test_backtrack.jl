@@ -1,24 +1,28 @@
 include("../model/instance.jl")         # it should be loaded whenever needed for this module or imported modules
-include("../solver/backtrack.jl")
+include("../solver/solver.jl")
+include("../model/wrapper.jl")
 include("../benchmark/queens.jl")
 
 module TestBacktrack
-    
-    using ..Instance: Variable, BConstraint, Instance_BCSP, addConstraints, diff
+
+    using ..Instance: Variable, BConstraint, Problem, addConstraints, diff
     using ..Solver
-    using ..Benchmark: queens_instance
+    using ..Benchmark: queens_cp
+    using ..Wrapper: different
 
+    ### WRAPPER ###
 
-    #= println("Let's test the wrapper\n") =#
-    # alldiff(instance)
+    println("Let's test the wrapper\n")
+
     x = Variable("x", collect(Float64, 0:5), undef)
     y = Variable("y", collect(0:5), undef)
-    instance = Instance_BCSP([x, y])
-    addConstraints(instance, diff(x, y, 1, 1, 2))
-    #= print(instance) =#
+    instance = Problem([x, y])
+    addConstraints(instance, different(x, y, 1, 1, 2))
+    print(instance)
 
+    ### BACKTRACK ###
 
-    println("Let's test the backtrack algorithm")
+    println("\nLet's test the backtrack algorithm")
 
     found_sol = backtrack(instance)
     println("found a solution? ", found_sol)
@@ -30,7 +34,7 @@ module TestBacktrack
     c3 = BConstraint("c3", ["z", "t"], [(0,0), (0,1), (1,0)])
     c4 = BConstraint("c4", ["z", "t"], [(3,0),(2,1)])
 
-    instance2 = Instance_BCSP([z,t],[c3,c4])
+    instance2 = Problem([z,t],[c3,c4])
     print(instance2)
 
     println()
@@ -38,11 +42,10 @@ module TestBacktrack
 
     found_sol = backtrack(instance2)
     println("found a solution? ", found_sol)
-
-    println()        # TODO : fix the bugs of this block of code (problem with the imports)
-    println("Let's test the backtrack algorithm on the queens")
+     
+    println("\nLet's test the backtrack algorithm on the queens")
     n=8
-    instance3 = queens_instance(n)
+    instance3 = queens_cp(n)
     found_sol = backtrack(instance3)
     println("found a solution? ", found_sol)
 

@@ -3,12 +3,11 @@ using .Instance
  =#
 
  module Wrapper
-    using ..BOperands: Variable, BConstraint
-    using ..Instance: Instance_BCSP
-    export all_diff, diff, eq, inf_eq
+    using ..Instance: Problem, Variable, BConstraint
+    export all_different, different, equal, inf_equal
 
-    #function all_diff(instance::Instance_BCSP) # TODO : remove
-    function all_diff(variables::Vector{Variable})
+    #function all_diff(instance::Problem) # TODO : remove
+    function all_different(variables::Vector{Variable})
         nbVarDif = length(variables)
         constraints = Vector{BConstraint}()
         for i in 1:nbVarDif-1
@@ -29,8 +28,11 @@ using .Instance
         return constraints
     end
 
-    #function diff(var1::Variable, var2::Variable, coef1, coef2, value, instance::Instance_BCSP)    # TODO : remove
-    function diff(var1::Variable, var2::Variable, coef1, coef2, value)
+    #function diff(var1::Variable, var2::Variable, coef1, coef2, value, instance::Problem)    # TODO : remove
+    function different(var1::Variable, var2::Variable, coef1, coef2, value)
+        """
+            Returns a constraint of the form: coef1*var1 + coef2*var2 != value.
+        """
         constraints = Vector{BConstraint}()
         name1 = var1.ID
         name2 = var2.ID
@@ -42,8 +44,11 @@ using .Instance
         return constraints
     end
 
-    #function eq(var1::Variable, var2::Variable, coef1, coef2, value, instance::Instance_BCSP)  # TODO : remove
-    function eq(var1::Variable, var2::Variable, coef1, coef2, value)
+    #function eq(var1::Variable, var2::Variable, coef1, coef2, value, instance::Problem)  # TODO : remove
+    function equal(var1::Variable, var2::Variable, coef1, coef2, value)
+        """
+            Returns a constraint of the form: coef1*var1 + coef2*var2 = value.
+        """
         constraints = Vector{BConstraint}()
         name1 = var1.ID
         name2 = var2.ID
@@ -55,8 +60,11 @@ using .Instance
         return constraint
     end
 
-    #function inf_eq(var1::Variable, var2::Variable, coef1, coef2, value, instance::Instance_BCSP)  # TODO : remove
-    function inf_eq(var1::Variable, var2::Variable, coef1, coef2, value, instance::Instance_BCSP)
+    #function inf_eq(var1::Variable, var2::Variable, coef1, coef2, value, instance::Problem)  # TODO : remove
+    function inf_equal(var1::Variable, var2::Variable, coef1, coef2, value, instance::Problem)
+        """
+            Returns a constraint of the form: coef1*var1 + coef2*var2 <= value.
+        """
         constraints = Vector{BConstraint}()
         name1 = var1.ID
         name2 = var2.ID

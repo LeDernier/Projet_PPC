@@ -1,19 +1,40 @@
+"""
+    Algorithms.
+"""
+
 module Solver
 
     #include("../model/instance.jl")                    # this should only be included in the main file
-    #using ..Instance: Instance_BCSP, getVariable        # .. because the include(..model/instance.jl) should be done in the file that includes this file
-    #import ..Instance
-    using ..Instance
+    #include("constants.jl")
+    using ..Instance: Problem, getVariable        # .. because the include(..model/instance.jl) should be done in the file that includes this file
+    
+
     export backtrack
 
-    function backtrack(instance::Instance_BCSP)::Bool
+    #= function solve(instance::Problem)
+        resolveOk = false
+        solutionStatus = CspSolutionNoSolutionFound
+        solutionTime = 0.0
+
+        diff_time =  time()
+        resolveOk = backtrack(instance)
+        diff_time = time() - diff_time
+        if resolveOk
+            solutionStatus = CspSolutionSolutionFound
+            status = CspStatusFeasible
+        end
+
+    end =#
+
+
+    function backtrack(instance::Problem)::Bool
 
         # check that all constraints are respected
         for c in instance.constraints
             id1 = c.varsIDs[1]
             id2 = c.varsIDs[2]
-            var1 = Instance.getVariable(instance, id1).value
-            var2 = Instance.getVariable(instance, id2).value
+            var1 = getVariable(instance, id1).value
+            var2 = getVariable(instance, id2).value
             if var1 != undef && var2 != undef
                 found_feasible_point = false
                 for values in c.feasible_points

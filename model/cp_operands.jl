@@ -1,6 +1,6 @@
 module BOperands
 
-    export Variable,Variables, BConstraint, num_bConstraints
+    export Variable, Variables, BConstraint, num_bConstraints
 
     ### CONSTANTS ###
     const num_bConstraints = Ref(0)
@@ -13,7 +13,7 @@ module BOperands
         value::Union{<:Real,UndefInitializer}       # current value
         index_domain::Integer                       # maximal index to search in the domain
 
-        function Variable(ID::Union{<:Int,<:String} , domain::Vector{<:Real}, value::Union{<:Real,UndefInitializer})
+        function Variable(ID::Union{<:Int,<:String} , domain::Vector{<:Real}, value::Union{<:Real,UndefInitializer}=undef)
             """
                 Constructor of a variable identified by its name.
             """
