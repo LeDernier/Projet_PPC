@@ -4,75 +4,89 @@ module Instance
     include("cp_operands.jl")
     include("lp_operands.jl")
     include("operations.jl")
-    
 
     import .BOperands: Variable, Variables, BConstraint
-    import .LpOperands: LpAffineExpression, LpConstraint, _varMapType
+    using .LpOperands: LpAffineExpression, LpConstraint, _varMapType
     
 
     export Variable,Variables, BConstraint,
     +, -, *,
-    Instance_BCSP, addVariables, getVariable, addConstraints, addConstraint, nbConstraints, nbVariables, makeExplicit,
-    all_diff, diff, eq, inf_eq
+    Problem, addVariables, getVariable, addConstraints, addConstraint, nbConstraints, nbVariables, makeExplicit
     
 
     ### INSTANCE OF A CSP ###
 
-    mutable struct Instance_BCSP
+    mutable struct Problem
         """
-            Instance of a binary constraint satisfaction problem.
+            Instance of a two-variable problem. It can be a constraint satisfaction problem 
+            or an optimization problem.
         """
         variables::Dict{Union{String,Int}, Variable}
         constraints::Vector{BConstraint}
+        objective::Union{LpAffineExpression, Nothing}   # optional
+        sense::Integer                                  # 0: satisfaction, 1: minimization, -1: maximization
 
-        function Instance_BCSP()
+        function Problem()
             """
-                Empty constructor (the variables and constraints are added later).
+                Empty constructor (the objective, variables and constraints are added later).
             """
             vars = Dict{Union{String,Int}, Variable}()
             constrs = Vector{BConstraint}()
-            return new(vars, constrs)
-        end
+            objective = nothing
+            sense = 0
 
-        function Instance_BCSP(variables::Vector{Variable})
+            return new(vars, constrs, objective, sense)
+        end
+        
+        function Problem(variables::Vector{Variable}, 
+                        objective::Union{LpAffineExpression, Nothing}=nothing, 
+                        sense=0)
             """
                 Unconstraint constructor (the constraints can be added later).
             """
             vars = Dict(var.ID => var for var in variables)
             constrs = Vector{BConstraint}()
-            return new(vars, constrs)
+            if isnothing(objective) || sense == 0
+                sense = 0
+                objective = nothing
+            end
+            sense = sign(sense)
+            return new(vars, constrs, objective, sense)
         end
 
-        function Instance_BCSP(variables::Vector{Variable}, constraints::Vector{BConstraint})
+        function Problem(variables::Vector{Variable}, 
+                        constraints::Vector{BConstraint}, 
+                        objective::Union{LpAffineExpression, Nothing}=nothing, 
+                        sense=0)
             """
                 Standard constructor.
             """
             vars = Dict(var.ID => var for var in variables)
             constrs = constraints
-            return new(vars, constrs)
+            if isnothing(objective) || sense == 0
+                sense = 0
+                objective = nothing
+            end
+            sense = sign(sense)
+            return new(vars, constrs, objective, sense)
         end
     end
-    
-    ## Include wrapper after the definition of Instance_BCSP
 
-    include("wrapper.jl")
-    import .Wrapper: all_diff, diff, eq, inf_eq
-
-    function nbVariables(instance::Instance_BCSP)
+    function nbVariables(instance::Problem)
         """
             Returns the Real of variables in the instance.
         """
         return length(instance.variables)
     end
 
-    function nbConstraints(instance::Instance_BCSP)
+    function nbConstraints(instance::Problem)
         """
             Returns the Real of constraints in the instance.
         """
         return length(instance.constraints)
     end
 
-    function addVariables(instance::Instance_BCSP, variables::Vector{Variable})
+    function addVariables(instance::Problem, variables::Vector{Variable})
         for variable in variables
             if haskey(instance.variables, variable.ID)
                 @warn "A variable has been replaced : same ID."
@@ -81,26 +95,26 @@ module Instance
         end
     end
 
-    function getVariable(instance::Instance_BCSP, varID::Union{String,Int})
+    function getVariable(instance::Problem, varID::Union{String,Int})
         return instance.variables[varID]
     end
 
 
     ### ADD A BINARY CONSTRAINT TO THE INSTANCE ###
 
-    function addConstraints(instance::Instance_BCSP, constraints::Vector{BConstraint})
+    function addConstraints(instance::Problem, constraints::Vector{BConstraint})
         for constraint in constraints
             push!(instance.constraints, constraint)
         end
     end
 
-    function addConstraint(instance::Instance_BCSP, constraint::BConstraint)
+    function addConstraint(instance::Problem, constraint::BConstraint)
         addConstraints(instance, [constraint])
     end
 
     ## String representation ##
 
-    function reprInstance(instance::Instance_BCSP)
+    function reprInstance(instance::Problem)
         println("\nVariables:")
         for var in keys(instance.variables)
             println(var)
@@ -111,7 +125,7 @@ module Instance
         end
     end
 
-    Base.show(io::IO, instance::Instance_BCSP) = print(io, reprInstance(instance))
+    Base.show(io::IO, instance::Problem) = print(io, reprInstance(instance))
 
 
     ### ADD A LINEAR CONSTRAINT TO THE INSTANCE ###
@@ -150,7 +164,7 @@ module Instance
         return feasibleValues
     end
 
-    function addConstraints(instance::Instance_BCSP, constraints::Vector{<:LpConstraint})
+    function addConstraints(instance::Problem, constraints::Vector{<:LpConstraint})
         for constraint in constraints
             varsnames = [var.ID for var in collect(keys(constraint.lhs.terms))]
             feasible_points = makeExplicit(constraint)
@@ -158,7 +172,7 @@ module Instance
         end
     end
 
-    function addConstraint(instance::Instance_BCSP, constraint::LpConstraint)
+    function addConstraint(instance::Problem, constraint::LpConstraint)
         addConstraints(instance, [constraint])
     end
 end
