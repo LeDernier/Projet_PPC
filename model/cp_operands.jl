@@ -12,14 +12,15 @@ module BOperands
         domain::Vector{<:Real}                      # domain / set of feasible values
         value::Union{<:Real,UndefInitializer}       # current value
         index_domain::Integer                       # maximal index to search in the domain
+        index_domain_lower::Integer                 # minimal index to search in the domain
 
         function Variable(ID::Union{<:Int,<:String} , domain::Vector{<:Real}, value::Union{<:Real,UndefInitializer}=undef)
             """
                 Constructor of a variable identified by its name.
             """
-            index_domain = init_index_domain(domain)
             domain = [convert(Float64, val) for val in domain]
-            return new(ID, domain, value, index_domain)
+            index_domain = init_index_domain(domain)
+            return new(ID, domain, value, index_domain, 1)
         end
     end
 
@@ -66,27 +67,5 @@ module BOperands
     function reprBConstraint(c::BConstraint)
         repr = "BConstraint(name="*string(c.name)*"; variables: "*string(c.varsIDs)*")"
         return repr
-    end
-
-    ## LIST OF VARIABLES ##
-
-    mutable struct Variables
-        """
-            # DEPRECATED ?
-            TODO : evaluate if this is useful or not. If not, remove it.
-        """
-        array::Vector{Variable}
-        function Variables(name::String, indices::Vector{Int}, domain::Vector{<:Real}, value::Union{<:Real,UndefInitializer})
-            """
-                Constructor of an array of variables.
-            """
-            array = Vector{Variable}()
-            
-            for index_var in indices
-                push!(array, Variable(name, domain, value))
-            end
-
-            return new(array)
-        end
     end
 end
