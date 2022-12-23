@@ -1,42 +1,37 @@
 using ..Instance: Problem, Variable, addConstraint, addConstraints, addObjective, BConstraint
 using ..Wrapper: all_different
 
-function colorability_cp(path::String)::Problem
+function colorability_cp(edges::Vector{Tuple}, num_vertices::Integer, chrom_number_u::Variable)::Problem
     """
     Parameters
         path: graph instance in DIMACS standard format, available at: 
         https://mat.gsia.cmu.edu/COLOR/instances.html.
+        - chrom_number_u: upper bound of the chromatic number.
     Return
         An instance of the vertex coloring problem modelled as a O-CP 
         (Optimisation Constraint Program)
     """
 
-    edges, num_vertices, num_edges = getEdges(path)
-    max_colors = getMaxColors(edges, num_vertices)
-
     ## problem instance
     # create the variables
     color = Vector{Variable}(undef, num_vertices)          # c_i := color of the i-th 
     for v in 1:num_vertices
-        color[v] = Variable("color_vertex_"*string(v), collect(1:max_colors), undef)
+        color[v] = Variable("color_vertex_"*string(v), collect(1:chrom_number_u.value))
     end
 
     # create the instance
     instance = Problem(color)
 
-    # add the constraints
-    for edge in edges
-        adjacent_v = [color[edge[1]],color[edge[2]]]        # adjacent vertices
-        addConstraints(instance, all_different(adjacent_v))
-    end
-
     # add the objective
-    objective = color[1]
-    for v in 2:num_vertices
-        objective = objective + color[v]
-    end
+    objective = chrom_number_u
     addObjective(instance, objective)
 
+    # add the constraints
+    for edge in edges
+        adjacent_v = [color[edge[1]],color[edge[2]]]            # adjacent vertices don't have the same color
+        addConstraints(instance, all_different(adjacent_v))
+    end
+    
     return instance
 end
 
@@ -94,7 +89,7 @@ function getMaxColors(edges::Vector{Tuple}, num_vertices::Integer)
         mc_subgraph[vertex] = min(degrees[vertex]+1, vertex)
     end
 
-    max_colors,_ = findmax(mc_subgraph)
+    chrom_number_u,_ = findmax(mc_subgraph)
 
-    return max_colors
+    return chrom_number_u
 end

@@ -5,13 +5,13 @@ module Instance
     include("lp_operands.jl")
     include("operations.jl")
 
-    import .BOperands: Variable, Variables, BConstraint
+    import .BOperands: Variable, BConstraint
     using .LpOperands: LpAffineExpression, LpConstraint, +, -, *, ==, <=, >=, !=, _varMapType
     
 
-    export Variable,Variables, BConstraint,
+    export Variable, BConstraint,
     +, -, *, ==, <=, >=, !=,
-    Problem, addVariables, getVariable, addConstraints, addConstraint, addObjective, nbConstraints, nbVariables, makeExplicitBinary, makeExplicitUnary
+    Problem, addVariables, getVariable, addConstraints, addConstraint, addObjective, nbConstraints, nbVariables, makeExplicitBinary
     
 
     ### INSTANCE OF A CSP ###
@@ -23,7 +23,7 @@ module Instance
         """
         variables::Dict{Union{String,Int}, Variable}
         constraints::Dict{Union{String,Int}, BConstraint}
-        objective::Union{LpAffineExpression, Nothing}   # optional
+        objective::Union{LpAffineExpression, Variable, Nothing}   # optional
         sense::Integer                                  # 0: satisfaction, 1: minimization, -1: maximization
 
         function Problem()
@@ -120,6 +120,9 @@ module Instance
     function reprInstance(instance::Problem)
         maxVarsToShow = 100
         maxConstrToShow = 600
+
+        ## variables
+
         numV = length(instance.variables) # number of variables
         println("\nVariables: "*string(numV))
         if numV <= maxVarsToShow
@@ -127,6 +130,21 @@ module Instance
                 println(string(var)*": "*string(var.value))
             end
         end
+
+        ## objective
+        if instance.sense != 0
+            println("\nObjective: ")
+            obj = string(instance.objective)
+            if instance.sense == 1
+                println("Minimize "*obj)
+            else
+                if instance.sense == -1
+                    println("Maximize "*obj)
+                end
+            end
+        end
+
+        ## constraints
         numC = length(instance.constraints) # number of constraints
         println("\nConstraints: "*string(numC))
         if numC <= maxConstrToShow
@@ -166,9 +184,16 @@ module Instance
             end
             
             # add the point to the feasible points if it satisfies the constraint
-            if constr.relation(valueLHS,constr.rhs)
-                push!(feasibleValues, valueVars)
-            end 
+            if typeof(constr.relation) == UnionAll
+                if constr.rhs <= valueLHS
+                    push!(feasibleValues, valueVars)
+                end
+            else
+                if constr.relation(valueLHS,constr.rhs)
+                    push!(feasibleValues, valueVars)
+                end 
+            end
+            
         end
 
         # return the list of variables ids (the order) and the feasible values
@@ -177,7 +202,7 @@ module Instance
 
     function addConstraints(instance::Problem, constraints::Vector{<:LpConstraint})
         for constraint in constraints
-            if ~(constraint.name in instance.constraints)
+            if ~(constraint.name in keys(instance.constraints))
                 varsnames = [var.ID for var in collect(keys(constraint.lhs.terms))]
                 feasible_points = makeExplicitBinary(constraint)
                 bconstr = BConstraint(varsnames, feasible_points)
@@ -191,7 +216,14 @@ module Instance
         addConstraints(instance, [constraint])
     end
 
-    function addObjective(instance::Problem, objective::LpAffineExpression)
-        instance.objective = objective
+    function addObjective(instance::Problem, objective::Union{LpAffineExpression, Variable}, sense::Integer=1)
+        """
+            objective: affine expression.
+            sense: 1 Minimize (by default), -1 Maximize
+        """
+        if sense == 1 || sense == -1
+            instance.objective = objective
+            instance.sense = sense
+        end
     end
 end

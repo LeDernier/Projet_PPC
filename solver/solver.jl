@@ -11,21 +11,6 @@ module Solver
 
     export backtrack
 
-    #= function solve(instance::Problem)
-        resolveOk = false
-        solutionStatus = CspSolutionNoSolutionFound
-        solutionTime = 0.0
-
-        diff_time =  time()
-        resolveOk = backtrack(instance)
-        diff_time = time() - diff_time
-        if resolveOk
-            solutionStatus = CspSolutionSolutionFound
-            status = CspStatusFeasible
-        end
-
-    end =#
-
 
     function backtrack(instance::Problem)::Bool
 
@@ -74,8 +59,9 @@ module Solver
         # -> forward checking or maintain-arc-consistency or in between both
         # idea: maintain-arc-consistency only at the root and then forward checking here
 
+        i_min = undefined_var.index_domain_lower
         i_max = undefined_var.index_domain
-        for current_value in undefined_var.domain[1:i_max]
+        for current_value in undefined_var.domain[i_min:i_max]
             undefined_var.value = current_value
             if backtrack(instance)[1]
                 return true
@@ -86,4 +72,54 @@ module Solver
         return false
     end
 
+    function solve(instance::Problem, maxTime::Float64)
+        """
+            instance: problem instance.
+            obj: objective of the optimization problem. It can be an affine expression or a variable.
+            maxTime: maximum time given to the solver to find the solution.
+        """
+        resolveOk = false
+        solutionStatus = PSolutionNoSolutionFound
+        solutionTime = 0.0
+
+        delta_time =  time()
+
+        ## resolution phase
+        if instance.sense == 0
+            resolveOk = actualSolveCSP(instance)
+        else
+            
+        end
+        ##
+
+        delta_time = time() - delta_time
+        if resolveOk
+            solutionStatus = PSolutionSolutionFound
+            status = PStatusFeasible
+        end
+
+        return resolveOk, status, solutionTime
+    end
+
+    function actualSolveCSP(instance::Problem)
+        """
+            Solve an constraint satisfaction problem.
+        """
+        return backtrack(instance)
+    end
+
+    function actualSolveCOP(instance::Problem)
+        """
+            Solve an constraint optimization problem.
+            TODO: decide if the objective function of a problem will always be a variable.
+        """
+        init_time = time()
+        delta_time = 0.0
+        while delta_time < maxTime || solutionStatus == PSolutionOptimal
+            delta_time = time() - init_time
+            
+            # assuming the objective function is a variable
+            
+        end
+    end
 end

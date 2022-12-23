@@ -1,4 +1,4 @@
-import .BOperands: Variable, Variables
+import .BOperands: Variable
 import .LpOperands: LpAffineExpression, LpConstraint, _varMapType
 using DataStructures
 
@@ -6,14 +6,6 @@ using DataStructures
 
 ## shorten code
 varMap(x::Variable) = x
-
-## OPERATIONS ON A LIST OF VARIABLES ##
-
-Base.size(a::Variables) = length(a.array)
-Base.getindex(a::Variables, i::Int) = a.array[i]
-Base.setindex!(a::Variables, v, i::Int) = (a.array[i] = v)
-
-
 
 ## Operations between variables and constants ##
 function Base.:-(x::Variable)
@@ -61,23 +53,50 @@ Base.:*(expr1::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} 
 Base.:*(a::Real, expr1::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = mulInPlace(expr1, a)
 
 ## Relational operations (generating a linear constraints)
+# virtual domain : domain defined by the minimal and maximal index_domain
 
-function makeExplicitUnary(variable::Variable, constant::Real)
-    
+function makeEQ(variable::Variable, constant::Real)
+    """
+        Modify the virtual domain of x so that x == b, where x is a variable and b is a constant.
+        TODO : update this code using Variable.index_domain_lower
+    """
     if constant in variable.domain
         # modify the domain and the index_domain so that 'constant' is the...
         # ...only value when iterating over the domain
-        maxIndex = length(variable.domain)
-        indexConstant = findfirst(isequal(float(constant)), variable.domain)
-        variable.domain[indexConstant], variable.domain[maxIndex] = variable.domain[maxIndex], variable.domain[indexConstant]
-        variable.index_domain = maxIndex
+        minIndex = 1
+        indexConstant = findfirst(isequal(constant), variable.domain)
+        variable.domain[indexConstant], variable.domain[minIndex] = variable.domain[minIndex], variable.domain[indexConstant]
+        variable.index_domain = minIndex
 
         # assign the value to the variable
         variable.value = constant
     end
 end
 
-Base.:(==)(x::Variable, a::Real) = makeExplicitUnary(x,float(a))
+#= function makeLE(variable::Variable, constant::Real)
+    """
+        Modify the virtual domain of x so that x <= b, where x is a variable and b is a constant.
+    """
+    if constant in variable.domain
+        indexConstant = findfirst(isequal(constant), variable.domain)
+        variable.index_domain = indexConstant
+    end
+end
+
+function makeGE(variable::Variable, constant::Real)
+    """
+        Modify the virtual domain of x so that x <= b, where x is a variable and b is a constant.
+    """
+    if constant in variable.domain
+        indexConstant = findfirst(isequal(constant), variable.domain)
+        variable.index_domain_lower = indexConstant
+    end
+end
+ =#
+
+Base.:(==)(x::Variable, a::Real) = makeEQ(x,float(a))
+#= Base.:(<=)(x::Variable, a::Real) = makeLE(x,float(a))
+Base.:(=>)(x::Variable, a::Real) = makeGE(x,float(a)) =#
 
 
 #= Base.:(==)(x::Variable, y::Variable) = LpConstraint(x - y, 0, ==)
