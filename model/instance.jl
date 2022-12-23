@@ -91,7 +91,7 @@ module Instance
             if haskey(instance.variables, variable.ID)
                 @warn "A variable has been replaced : same ID."
             end 
-            instance.variables[variable.ID] = variables
+            instance.variables[variable.ID] = variable
         end
     end
 
@@ -184,9 +184,16 @@ module Instance
             end
             
             # add the point to the feasible points if it satisfies the constraint
-            if constr.relation(valueLHS,constr.rhs)
-                push!(feasibleValues, valueVars)
-            end 
+            if typeof(constr.relation) == UnionAll
+                if constr.rhs <= valueLHS
+                    push!(feasibleValues, valueVars)
+                end
+            else
+                if constr.relation(valueLHS,constr.rhs)
+                    push!(feasibleValues, valueVars)
+                end 
+            end
+            
         end
 
         # return the list of variables ids (the order) and the feasible values
@@ -195,7 +202,7 @@ module Instance
 
     function addConstraints(instance::Problem, constraints::Vector{<:LpConstraint})
         for constraint in constraints
-            if ~(constraint.name in instance.constraints)
+            if ~(constraint.name in keys(instance.constraints))
                 varsnames = [var.ID for var in collect(keys(constraint.lhs.terms))]
                 feasible_points = makeExplicitBinary(constraint)
                 bconstr = BConstraint(varsnames, feasible_points)
