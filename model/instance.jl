@@ -11,7 +11,7 @@ module Instance
 
     export Variable,Variables, BConstraint,
     +, -, *, ==, <=, >=, !=,
-    Problem, addVariables, getVariable, addConstraints, addConstraint, nbConstraints, nbVariables, makeExplicitBinary, makeExplicitUnary
+    Problem, addVariables, getVariable, addConstraints, addConstraint, addObjective, nbConstraints, nbVariables, makeExplicitBinary, makeExplicitUnary
     
 
     ### INSTANCE OF A CSP ###
@@ -189,5 +189,9 @@ module Instance
 
     function addConstraint(instance::Problem, constraint::LpConstraint)
         addConstraints(instance, [constraint])
+    end
+
+    function addObjective(instance::Problem, objective::LpAffineExpression)
+        instance.objective = objective
     end
 end
