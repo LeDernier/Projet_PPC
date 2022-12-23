@@ -91,7 +91,7 @@ module Instance
             if haskey(instance.variables, variable.ID)
                 @warn "A variable has been replaced : same ID."
             end 
-            instance.variables[variable.ID] = variables
+            instance.variables[variable.ID] = variable
         end
     end
 
