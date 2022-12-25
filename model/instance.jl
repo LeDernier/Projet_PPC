@@ -5,8 +5,8 @@ module Instance
     include("lp_operands.jl")
     include("operations.jl")
 
-    import .BOperands: Variable, BConstraint
-    using .LpOperands: LpAffineExpression, LpConstraint, +, -, *, ==, <=, >=, !=, _varMapType
+    import .BOperands: Variable, BConstraint, num_dVariables
+    using .LpOperands: LpAffineExpression, LpConstraint, +, -, *, ==, <=, >=, !=, value, _varMapType
     
 
     export Variable, BConstraint,
@@ -21,7 +21,7 @@ module Instance
             Instance of a two-variable problem. It can be a constraint satisfaction problem 
             or an optimization problem.
         """
-        variables::Dict{Union{String,Int}, Variable}
+        variables::Dict{Union{String,Int,Tuple}, Variable}
         constraints::Dict{Union{String,Int}, BConstraint}
         objective::Union{LpAffineExpression, Variable, Nothing}   # optional
         sense::Integer                                  # 0: satisfaction, 1: minimization, -1: maximization
@@ -62,7 +62,7 @@ module Instance
                 Standard constructor.
             """
             vars = Dict(var.ID => var for var in variables)
-            constrs = Dict(constr.name => constr for constr in constraints)
+            constrs = Dict(constr.ID => constr for constr in constraints)
             if isnothing(objective) || sense == 0
                 sense = 0
                 objective = nothing
@@ -104,9 +104,9 @@ module Instance
 
     function addConstraints(instance::Problem, constraints::Vector{BConstraint})
         for constraint in constraints
-            if ~(constraint.name in keys(instance.constraints))
+            if ~(constraint.ID in keys(instance.constraints))
                 #push!(instance.constraints, constraint)        # TODO: remove
-                instance.constraints[constraint.name] = constraint
+                instance.constraints[constraint.ID] = constraint
             end
         end
     end
@@ -172,42 +172,89 @@ module Instance
             push!(vars, var)
             push!(varsValues, var.domain)
         end
-        
         cartesianProduct = Iterators.product((varValues for varValues in varsValues)...)
         feasibleValues = Vector{Tuple}()
+        isGreaterOrEqual = typeof(constr.relation) == UnionAll          # if constr.relation is: <=
+        isFunction = typeof(constr.relation) == Function
+            
         for valueVars in cartesianProduct
             # calculate the value of the constraint left-hand side using the fact that the expression is ordered
-            valueLHS = constr.lhs.constant
-            for i in range(1, length(valueVars))
-                coeff = constr.lhs.terms[vars[i]]
-                valueLHS += coeff * valueVars[i]
-            end
+            valueLHS = value(constr.lhs, valueVars)
             
             # add the point to the feasible points if it satisfies the constraint
-            if typeof(constr.relation) == UnionAll
-                if constr.rhs <= valueLHS
-                    push!(feasibleValues, valueVars)
-                end
-            else
-                if constr.relation(valueLHS,constr.rhs)
-                    push!(feasibleValues, valueVars)
-                end 
+            if isFeasiblePoint(isGreaterOrEqual, isFunction, constr.rhs, valueLHS, constr.relation)
+                push!(feasibleValues, valueVars)
             end
-            
         end
+
 
         # return the list of variables ids (the order) and the feasible values
         return feasibleValues
     end
 
+    function isFeasiblePoint(isGreaterOrEqual::Bool, isFunction::Bool, constr_rhs::Real, 
+                            valueLHS::Real, constr_relation::Any)
+        """
+        Parameters    
+            - isGreaterOrEqual: true if the constraint relation is =>
+            - isFunction: true if the constraint relation is a function (usually if it is not =>)
+            - constr_rhs: constraint right-hand side
+            - valueLHS: value of the constraint left-hand side
+            - constr_relation: constraint relation (usually a function)
+        """
+        
+        isFeasible = false
+        if isGreaterOrEqual
+            if constr_rhs <= valueLHS
+                isFeasible = true
+            end
+        else
+            if isFunction && constr_relation(valueLHS,constr_rhs)
+                isFeasible = true
+            end 
+        end
+
+        return isFeasible
+    end
+
+
     function addConstraints(instance::Problem, constraints::Vector{<:LpConstraint})
+        dualVars = Vector{Variable}()
         for constraint in constraints
-            if ~(constraint.name in keys(instance.constraints))
+            if ~(constraint.ID in keys(instance.constraints))
                 varsnames = [var.ID for var in collect(keys(constraint.lhs.terms))]
                 feasible_points = makeExplicitBinary(constraint)
-                bconstr = BConstraint(varsnames, feasible_points)
-                #push!(instance.constraints, bconstr)       # TODO: remove
-                instance.constraints[bconstr.name] = bconstr
+                if length(varsnames) == 2
+                    bconstr = BConstraint(varsnames, feasible_points)
+                    instance.constraints[bconstr.ID] = bconstr
+                else
+                    # if number of variables > 2, create a dual variable representing the constraint
+                    num_dVariables[] += 1
+                    dualVar = Variable("dual_"*string(num_dVariables[]), feasible_points)
+                    dualVar.primal_vars_ids = Tuple(varsnames)
+                    push!(dualVars,dualVar)
+                end
+            end
+        end
+
+        if length(dualVars) > 0
+            # add the dual variables
+            addVariables(instance, dualVars)
+
+            # add the hidden-variables constraints
+            for dualVar in dualVars
+                primal_vars_ids = dualVar.primal_vars_ids
+                dualVarDomain = dualVar.domain
+                for i in 1:length(primal_vars_ids)
+                    varsnames = [string(primal_vars_ids[i]), string(dualVar.ID)]        # constraint name = (primal vars IDS, dual var ID)
+                    feasible_points = Vector{Tuple}()
+                    for valDual in dualVarDomain
+                        valueVars = (valDual[i], valDual)
+                        push!(feasible_points, valueVars)
+                    end
+                    bconstr = BConstraint(varsnames, feasible_points)
+                    instance.constraints[bconstr.ID] = bconstr
+                end
             end
         end
     end

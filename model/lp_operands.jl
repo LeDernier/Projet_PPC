@@ -2,7 +2,7 @@ module LpOperands
     using DataStructures
     using ..BOperands: Variable
 
-    export LpAffineExpression, LpConstraint, num_lpConstraints, _varMapType
+    export LpAffineExpression, LpConstraint, num_lpConstraints, value, _varMapType
     
     ## GLOBAL VARIABLES OF THIS MODEL ##
     const num_lpConstraints = Ref(0)
@@ -35,7 +35,7 @@ module LpOperands
         """
             Expressions that represent a linear constraint
         """
-        name::String
+        ID::String
         lhs::LpAffineExpression{K,V}     # right-hand side
         rhs::Real                   # left-hand side
         relation::Union{Function,UnionAll}         # == or <=
@@ -74,5 +74,15 @@ module LpOperands
 
     function reprConstraint(constr::LpConstraint)
         return reprExpression(constr.lhs)*string(constr.relation)*" "*string(constr.rhs)
+    end
+
+    function value(expr::LpAffineExpression, valueVars::Tuple)
+        value = expr.constant
+        vars = collect(keys(expr.terms))
+        for i in range(1, length(expr.terms))
+            coeff = expr.terms[vars[i]]
+            value += coeff * valueVars[i]
+        end
+        return value
     end
 end

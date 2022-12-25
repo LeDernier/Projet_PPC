@@ -22,6 +22,12 @@ end
 function Base.:+(x::Variable, y::Variable)
     return LpAffineExpression(OrderedDict(varMap(x) => 1.0, varMap(y) => 1.0))
 end
+function Base.:-(x::Variable, a::Real)
+    return x + (-a)
+end
+function Base.:-(a::Real, x::Variable)
+    return a + (-x)
+end
 function Base.:-(x::Variable, y::Variable)
     return x + (-y)
 end
@@ -111,6 +117,11 @@ Base.:(<=)(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real
 Base.:(=>)(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = LpConstraint(expr, convert(Float64, a), =>)
 Base.:(!=)(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = LpConstraint(expr, convert(Float64, a), !=)
 
+Base.:(==)(expr1::LpAffineExpression{K,V}, expr2::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = expr1 - expr2 == 0.0
+Base.:(<=)(expr1::LpAffineExpression{K,V}, expr2::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = expr1 - expr2 <= 0.0
+Base.:(=>)(expr1::LpAffineExpression{K,V}, expr2::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = expr1 - expr2 => 0.0
+Base.:(!=)(expr1::LpAffineExpression{K,V}, expr2::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = expr1 - expr2 != 0.0
+
 function addInPlace(expr1::LpAffineExpression{K,V}, expr2::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real}
     """
         Add the second expression to the first one.
@@ -118,7 +129,7 @@ function addInPlace(expr1::LpAffineExpression{K,V}, expr2::LpAffineExpression{K,
     # update the coefficients
     for (_varmap, varCoeff) in expr2.terms
         if haskey(expr1.terms, _varmap)
-            expr1.terms[_varmap] += varCoeff
+            expr1.terms[_varmap] += varCoeff    
         else
             expr1.terms[_varmap] = varCoeff
         end
