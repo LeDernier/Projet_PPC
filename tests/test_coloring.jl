@@ -12,7 +12,7 @@ module TestColoring
 
     path = "..\\..\\External instances\\instances_coloring\\random-10.col"
     edges, num_vertices, num_edges = getEdges(path)
-    #max_colors_u = getMaxColors(edges, num_vertices)           #TODO: it gives wrong upper bounds
+    #max_colors_u = getMaxColors(edges, num_vertices)
     max_colors_u = num_vertices
     chrom_number_u = Variable("chromatic_number", collect(1:max_colors_u), max_colors_u)
     instance = colorability_cp(edges,num_vertices, chrom_number_u)
