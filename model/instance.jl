@@ -23,7 +23,7 @@ module Instance
         """
         variables::Dict{Union{String,Int,Tuple}, Variable}
         constraints::Dict{Union{String,Int}, BConstraint}
-        objective::Union{LpAffineExpression, Variable, Nothing}   # optional
+        objective::Union{Variable, Nothing}   # optional
         sense::Integer                                  # 0: satisfaction, 1: minimization, -1: maximization
 
         function Problem()
@@ -39,7 +39,7 @@ module Instance
         end
         
         function Problem(variables::AbstractArray{Variable}, 
-                        objective::Union{LpAffineExpression, Nothing}=nothing, 
+                        objective::Union{Variable, Nothing}=nothing, 
                         sense=0)
             """
                 Unconstraint constructor (the constraints can be added later).
@@ -263,7 +263,7 @@ module Instance
         addConstraints(instance, [constraint])
     end
 
-    function addObjective(instance::Problem, objective::Union{LpAffineExpression, Variable}, sense::Integer=1)
+    function addObjective(instance::Problem, objective::Variable, sense::Integer=1)
         """
             objective: affine expression.
             sense: 1 Minimize (by default), -1 Maximize
@@ -272,5 +272,7 @@ module Instance
             instance.objective = objective
             instance.sense = sense
         end
+
+        addVariables(instance, [objective])        
     end
 end
