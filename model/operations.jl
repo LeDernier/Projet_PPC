@@ -79,7 +79,7 @@ function makeEQ(variable::Variable, constant::Real)
     end
 end
 
-#= function makeLE(variable::Variable, constant::Real)
+ function makeLE(variable::Variable, constant::Real)
     """
         Modify the virtual domain of x so that x <= b, where x is a variable and b is a constant.
     """
@@ -98,11 +98,11 @@ function makeGE(variable::Variable, constant::Real)
         variable.index_domain_lower = indexConstant
     end
 end
- =#
+
 
 Base.:(==)(x::Variable, a::Real) = makeEQ(x,float(a))
-#= Base.:(<=)(x::Variable, a::Real) = makeLE(x,float(a))
-Base.:(=>)(x::Variable, a::Real) = makeGE(x,float(a)) =#
+Base.:(<=)(x::Variable, a::Real) = makeLE(x,float(a))
+Base.:(>=)(x::Variable, a::Real) = makeGE(x,float(a))
 
 
 #= Base.:(==)(x::Variable, y::Variable) = LpConstraint(x - y, 0, ==)

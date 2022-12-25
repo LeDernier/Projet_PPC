@@ -31,6 +31,10 @@ function colorability_cp(edges::Vector{Tuple}, num_vertices::Integer, chrom_numb
         adjacent_v = [color[edge[1]],color[edge[2]]]            # adjacent vertices don't have the same color
         addConstraints(instance, all_different(adjacent_v))
     end
+
+    for v in 1:num_vertices
+        addConstraint(instance, color[v] - objective <= 0)
+    end
     
     return instance
 end

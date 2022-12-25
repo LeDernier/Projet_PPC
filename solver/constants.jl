@@ -6,7 +6,7 @@
 # variable categories
 PInteger = "Integer"
 PBinary = "Binary"
-PCategories = Dict(PInteger: "Integer", PBinary: "Binary")
+PCategories = Dict(PInteger => "Integer", PBinary => "Binary")
 
 # objective sense
 PMinimize = 1
@@ -40,6 +40,12 @@ PSolution = Dict(
     PSolutionSolutionFound => "Solution Found",
     PSolutionOptimal => "Optimal Solution Found",
     PSolutionInfeasible => "No Solution Exists",
+)
+
+PSolutionToStatus = Dict(
+    PSolutionSolutionFound => PStatusFeasible,
+    PSolutionOptimal => PStatusOptimal,
+    PSolutionInfeasible => PStatusInfeasible,
 )
 
 #= PStatusToSolution = Dict(
