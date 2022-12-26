@@ -4,7 +4,7 @@ module Benchmark
     include("colorability.jl")
     include("all_interval_series.jl")
     include("graceful_graphs.jl")
-    export queens_cp, queens_lp, sudoku2D, colorability_cp, allIntervalSeries, gracefullGraph, getEdges, getMaxColors
+    export queens_cp, queens_lp, sudoku2D, colorability_cp, allIntervalSeries, allIntervalSeriesBinary, gracefullGraph, getEdges, getMaxColors
 
 end
 

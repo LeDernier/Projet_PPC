@@ -7,17 +7,15 @@ module TestInterval
 
     using ..Instance: Variable, BConstraint, Problem, addConstraints, diff
     using ..Solver
-    using ..Benchmark: allIntervalSeries
+    using ..Benchmark: allIntervalSeriesBinary
     using ..Wrapper: all_different
-
-    ## Sudoku ##
 
     println("\nLet's test the backtrack algorithm on the interval series")
     
-    instance = allIntervalSeries(3)
+    instance = allIntervalSeriesBinary(3)
 
     print(instance)
-    found_sol = backtrack(instance)
+    found_sol = backjumping(instance)
     println("found a solution? ", found_sol)
 
     for var in values(instance.variables)
