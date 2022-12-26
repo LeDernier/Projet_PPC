@@ -38,6 +38,7 @@ module BOperands
         return index_domain
     end
 
+    #Base.show(io::IO, x::Variable) = print(io, string(x.ID)*": "*string(x.domain))
     Base.show(io::IO, x::Variable) = print(io, string(x.ID))
 
     ### CONSTRAINTS ###
@@ -72,6 +73,7 @@ module BOperands
     Base.show(io::IO, c::BConstraint) = print(io, reprBConstraint(c))
 
     function reprBConstraint(c::BConstraint)
+        #repr = "BConstraint(name="*string(c.ID)*"; variables: "*string(c.varsIDs)*"; values=\n"*string(c.feasible_points)*"\n)"
         repr = "BConstraint(name="*string(c.ID)*"; variables: "*string(c.varsIDs)*")"
         return repr
     end

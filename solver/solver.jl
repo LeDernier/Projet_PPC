@@ -12,7 +12,7 @@ module Solver
 
     export backtrack, solve
 
-    function solve(instance::Problem, maxTime::Real=60)
+    function solve(instance::Problem, maxTime::Real=10)
         """
         Parameters
             - instance: problem instance.
@@ -76,37 +76,52 @@ module Solver
         middle_idx = right_idx
 
         ## estimate middle_idx by the dichotomy method ##
+        resolveOk = false
+        right_idx_resolveOk = false     # true if the solution associated to the right_idx is ok
+        left_idx_resolveOk = false      # true if the solution associated to the left_idx is ok
         while true
             if delta_time >= maxTime
                 break
             end
 
             delta_time = time() - init_time
+            instance.objective.value = obj_values[middle_idx]
             instance.objective <= obj_values[middle_idx]            # change the virtual domain of the objective variable
             resolveOk = actualSolveCSP(instance)
             
-            
             if resolveOk
                 println("resolveOk with middle_idx: ", middle_idx)
+                right_idx_resolveOk = true
                 right_idx = middle_idx
-                middle_idx=round(Integer, (left_idx+middle_idx)/2)
+                middle_idx=floor(Integer, (left_idx+middle_idx)/2)
                 if middle_idx == left_idx
+                    if left_idx_resolveOk
+                        resolveOk = true
+                    end
+                    println("last resolveOk with middle_idx: ", middle_idx)
                     break
                 end
             else
                 println("resolveNotOk with middle_idx: ", middle_idx)
+                left_idx_resolveOk = true
                 left_idx = middle_idx
-                middle_idx=round(Integer, (middle_idx+right_idx)/2)
+                middle_idx=ceil(Integer, (middle_idx+right_idx)/2)
                 if middle_idx == right_idx
+                    if right_idx_resolveOk
+                        resolveOk = true
+                    end
+                    println("last resolveNotOk with middle_idx: ", middle_idx)
                     break
                 end
             end
         end
 
         ## get the instance associated to middle_idx ##
-        instance.objective.value = obj_values[middle_idx]
-        instance.objective <= obj_values[middle_idx]
-        resolveOk = actualSolveCSP(instance)
+        if instance.objective.value != obj_values[middle_idx]
+            instance.objective.value = obj_values[middle_idx]
+            instance.objective <= obj_values[middle_idx]
+            resolveOk = actualSolveCSP(instance)
+        end
 
         if resolveOk
             statusSol == PSolutionOptimal
