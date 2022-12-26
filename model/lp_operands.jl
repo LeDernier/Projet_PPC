@@ -38,9 +38,9 @@ module LpOperands
         ID::String
         lhs::LpAffineExpression{K,V}     # right-hand side
         rhs::Real                   # left-hand side
-        relation::Union{Function,UnionAll}         # == or <=
+        relation::Function        # == or <=
         
-    function LpConstraint(lhs::LpAffineExpression{K,V}, rhs::Real, relation::Union{Function,UnionAll}) where {K<:_varMapType,V<:Real}
+    function LpConstraint(lhs::LpAffineExpression{K,V}, rhs::Real, relation::Function) where {K<:_varMapType,V<:Real}
             """
                 Constructor of a linear constraint that has the terms in the left-hand side,
                 and the constant in the right-hand side.

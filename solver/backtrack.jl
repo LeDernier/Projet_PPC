@@ -1,3 +1,5 @@
+using ..Instance: Problem, getVariable
+
 function backtrack(instance::Problem)::Bool
 
     # check that all constraints are respected
@@ -15,6 +17,7 @@ function backtrack(instance::Problem)::Bool
                 end
             end
             if !found_feasible_point
+                println("Any feasible point found for the constraint: ", c.ID)
                 return false
             end
         end
@@ -23,12 +26,13 @@ function backtrack(instance::Problem)::Bool
     # check that some variables are undefined
     completed = true
     undefined_var = undef
-    domain_size = 10000000
+    domain_size = Inf
     for var in values(instance.variables)
         if var.value == undef
             completed = false
             if length(var.domain) < domain_size
                 undefined_var = var
+                domain_size = length(var.domain)
             end
         end
     end
@@ -49,6 +53,7 @@ function backtrack(instance::Problem)::Bool
     i_max = undefined_var.index_domain
     for current_value in undefined_var.domain[i_min:i_max]
         undefined_var.value = current_value
+        println("varname, valtested: (", undefined_var.ID, ", ", current_value, ")")
         if backtrack(instance)[1]
             return true
         end

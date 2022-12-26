@@ -174,15 +174,13 @@ module Instance
         end
         cartesianProduct = Iterators.product((varValues for varValues in varsValues)...)
         feasibleValues = Vector{Tuple}()
-        isGreaterOrEqual = typeof(constr.relation) == UnionAll          # if constr.relation is: <=
-        isFunction = typeof(constr.relation) == Function
             
         for valueVars in cartesianProduct
             # calculate the value of the constraint left-hand side using the fact that the expression is ordered
             valueLHS = value(constr.lhs, valueVars)
             
             # add the point to the feasible points if it satisfies the constraint
-            if isFeasiblePoint(isGreaterOrEqual, isFunction, constr.rhs, valueLHS, constr.relation)
+            if isFeasiblePoint(constr.rhs, valueLHS, constr.relation)
                 push!(feasibleValues, valueVars)
             end
         end
@@ -192,26 +190,18 @@ module Instance
         return feasibleValues
     end
 
-    function isFeasiblePoint(isGreaterOrEqual::Bool, isFunction::Bool, constr_rhs::Real, 
+    function isFeasiblePoint(constr_rhs::Real, 
                             valueLHS::Real, constr_relation::Any)
         """
         Parameters    
-            - isGreaterOrEqual: true if the constraint relation is =>
-            - isFunction: true if the constraint relation is a function (usually if it is not =>)
             - constr_rhs: constraint right-hand side
             - valueLHS: value of the constraint left-hand side
             - constr_relation: constraint relation (usually a function)
         """
         
         isFeasible = false
-        if isGreaterOrEqual
-            if constr_rhs <= valueLHS
-                isFeasible = true
-            end
-        else
-            if isFunction && constr_relation(valueLHS,constr_rhs)
-                isFeasible = true
-            end 
+        if constr_relation(valueLHS,constr_rhs)
+            isFeasible = true
         end
 
         return isFeasible
