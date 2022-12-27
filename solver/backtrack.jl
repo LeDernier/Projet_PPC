@@ -1,6 +1,11 @@
 using ..Instance: Problem, getVariable
 
-function backtrack(instance::Problem)::Bool
+function backtrack(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf)::Bool
+
+    # check if the delta_time <= maxTime in the solver
+    if time() - init_time > maxTime
+        return false
+    end
 
     # check that all constraints are respected
     for c in values(instance.constraints)
@@ -17,7 +22,6 @@ function backtrack(instance::Problem)::Bool
                 end
             end
             if !found_feasible_point
-                println("Any feasible point found for the constraint: ", c.ID)
                 return false
             end
         end
@@ -53,8 +57,9 @@ function backtrack(instance::Problem)::Bool
     i_max = undefined_var.index_domain
     for current_value in undefined_var.domain[i_min:i_max]
         undefined_var.value = current_value
-        println("varname, valtested: (", undefined_var.ID, ", ", current_value, ")")
-        if backtrack(instance)[1]
+        push!(instance.variables_instantiated, undefined_var)
+        #println("varname, valtested: (", undefined_var.ID, ", ", current_value, ")")
+        if backtrack(instance, init_time, maxTime)[1]
             return true
         end
         undefined_var.value = undef
