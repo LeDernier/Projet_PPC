@@ -12,10 +12,11 @@ module TestInterval
 
     println("\nLet's test the backtrack algorithm on the interval series")
     
-    instance = allIntervalSeriesBinary(3)
+    instance = allIntervalSeriesBinary(5)
 
     print(instance)
     found_sol = backjumping(instance)
+    # found_sol = backtrack(instance)
     println("found a solution? ", found_sol)
 
     for var in values(instance.variables)
