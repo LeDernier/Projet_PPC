@@ -38,8 +38,8 @@ function allIntervalSeries(n::Int)::Problem
         s_var = s_var_i - s_var_j
         # addConstraint(instance, v_variables[i] == abs(s_variables[i] - s_variables[i+1]))
         #addConstraint(instance, 0.0 <= v_var + s_var)
-        addConstraint(instance, v_var + s_var => 0.0)
-        addConstraint(instance, v_var - s_var => 0.0)
+        addConstraint(instance, v_var + s_var >= 0.0)
+        addConstraint(instance, v_var - s_var >= 0.0)
         addConstraint(instance, v_var - M*nu_var <= s_var_i - s_var_j)
         #addConstraint(instance, v_var - M*(1-nu_var) <= s_var_j - s_var_i)
         addConstraint(instance, v_var + M*(nu_var-1) <= s_var_j - s_var_i)

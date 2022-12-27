@@ -12,7 +12,7 @@ module Solver
 
     export backtrack, solve
 
-    function solve(instance::Problem, maxTime::Real=10)
+    function solve(instance::Problem, maxTime::Real=2)
         """
         Parameters
             - instance: problem instance.
@@ -20,47 +20,50 @@ module Solver
         """
         resolveOk = false
         solutionStatus = PSolutionNoSolutionFound
-        solutionTime = 0.0
     
-        delta_time =  time()
+        init_time = time()
     
         ## resolution phase
         if instance.sense == 0
-            resolveOk = actualSolveCSP(instance)
+            resolveOk = actualSolveCSP(instance, init_time, maxTime)
             if resolveOk
                 solutionStatus = PSolutionSolutionFound
             else
                 solutionStatus = PSolutionInfeasible
             end
         else
-            resolveOk, solutionStatus = actualSolveCOP(instance, maxTime) 
+            resolveOk, solutionStatus = actualSolveCOP(instance, init_time, maxTime) 
         end
         
     
-        delta_time = time() - delta_time
+        delta_time = time() - init_time
         status = get(PSolutionToStatus, solutionStatus, 0)
     
-        return status, solutionTime
+        return status, delta_time
     end
 
-    function actualSolveCSP(instance::Problem)
+    function actualSolveCSP(instance::Problem, init_time::Real, maxTime::Real)
         """
             Solve an constraint satisfaction problem.
-        """
-        return backtrack(instance)
-    end
-
-    function actualSolveCOP(instance::Problem, maxTime::Real)
-        """
-        Solve an constraint optimization problem. The objective should always be a Variable.
-
-        Parameters
+            Parameters
             - instance: problem instance.
+            - init_time: initial time.
             - maxTime: maximum time given to the solver to find the solution.
         """
+        return backtrack(instance, init_time, maxTime)
+    end
+
+    function actualSolveCOP(instance::Problem, init_time::Real, maxTime::Real)
+        """
+            Solve an constraint optimization problem. The objective should always be a Variable.
+
+            Parameters
+                - instance: problem instance.
+                - init_time: initial time.
+                - maxTime: maximum time given to the solver to find the solution.
+        """
         statusSol = PSolutionNoSolutionFound
-        init_time = time()
-        delta_time = 0.0
+        delta_time = time() - init_time
 
         obj_values = instance.objective.domain
         
@@ -79,56 +82,103 @@ module Solver
         resolveOk = false
         right_idx_resolveOk = false     # true if the solution associated to the right_idx is ok
         left_idx_resolveOk = false      # true if the solution associated to the left_idx is ok
+        instance_copy = deepcopy(instance) 
         while true
-            if delta_time >= maxTime
-                break
-            end
-
-            delta_time = time() - init_time
-            instance.objective.value = obj_values[middle_idx]
-            instance.objective <= obj_values[middle_idx]            # change the virtual domain of the objective variable
-            resolveOk = actualSolveCSP(instance)
+            
+            # backtrack on a copy of the instance
+            copyFromTo(instance, instance_copy)
+            instance_copy.objective.value = obj_values[middle_idx]
+            instance_copy.objective <= obj_values[middle_idx]            # change the virtual domain of the objective variable
+            makeFeasible(instance_copy)                                  # reset var variables; TODO: to improve using inverse backtracking
+            resolveOk = actualSolveCSP(instance_copy, init_time, maxTime)
+            
             
             if resolveOk
-                println("resolveOk with middle_idx: ", middle_idx)
+                copyFromTo(instance_copy, instance)
+                println("resolveOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time)
                 right_idx_resolveOk = true
                 right_idx = middle_idx
                 middle_idx=floor(Integer, (left_idx+middle_idx)/2)
                 if middle_idx == left_idx
                     if left_idx_resolveOk
                         resolveOk = true
+                        println("last resolveOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time)
+                    else
+                        println("last resolveNotOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time)
                     end
-                    println("last resolveOk with middle_idx: ", middle_idx)
+                    
                     break
                 end
             else
-                println("resolveNotOk with middle_idx: ", middle_idx)
+                println("resolveNotOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time)
                 left_idx_resolveOk = true
                 left_idx = middle_idx
                 middle_idx=ceil(Integer, (middle_idx+right_idx)/2)
                 if middle_idx == right_idx
                     if right_idx_resolveOk
                         resolveOk = true
+                        println("last resolveOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time)
+                    else
+                        println("last resolveNotOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time)
                     end
-                    println("last resolveNotOk with middle_idx: ", middle_idx)
+                    
                     break
                 end
             end
+
+            if time() - init_time >= maxTime
+                println("time exceeded. Delta_time: ", time() - init_time)
+                if right_idx_resolveOk
+                    resolveOk = true
+                end
+                break
+            end
         end
 
-        ## get the instance associated to middle_idx ##
-        if instance.objective.value != obj_values[middle_idx]
+        ## get the instance associated to middle_idx if delta_time < maxTime##
+        if instance.objective.value != obj_values[middle_idx] && time() - init_time < maxTime
+            println("objective_val: ", instance.objective.value, ", obj_values[middle_idx]: ", obj_values[middle_idx])
             instance.objective.value = obj_values[middle_idx]
             instance.objective <= obj_values[middle_idx]
-            resolveOk = actualSolveCSP(instance)
+            resolveOk = actualSolveCSP(instance, init_time, maxTime)
         end
 
         if resolveOk
-            statusSol == PSolutionOptimal
+            statusSol = PSolutionOptimal
         else
-            statusSol == PSolutionInfeasible
+            statusSol = PSolutionInfeasible
         end
         
         return resolveOk, statusSol
+    end
+
+    function makeFeasible(instance::Problem)
+        """
+            The completed instance is transformed into a partially solved instance.
+            The partial solution is feasible.
+        """
+        resetVarValues(instance)                # TODO : we can do this better, we are losing the history
+    end
+    
+    function resetVarValues(instance::Problem)
+        """
+            All the values of the the non-objective variables are reset. 
+        """
+        for var in values(instance.variables)
+            if var.ID != instance.objective.ID
+                var.value = undef
+            end
+        end
+    end
+
+    function copyFromTo(instance_copy::Problem, instance::Problem)
+        """
+            Parameters
+                - instance_copy: a deepcopy of instance.
+                - instance
+        """
+        for var in values(instance_copy.variables)
+            instance.variables[var.ID].value = var.value
+        end
     end
 end

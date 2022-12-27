@@ -114,12 +114,17 @@ Base.:(!=)(x::Variable, y::Variable) = LpConstraint(x - y, 0, !=) =#
 
 Base.:(==)(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = LpConstraint(expr, convert(Float64, a), ==)
 Base.:(<=)(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = LpConstraint(expr, convert(Float64, a), <=)
-Base.:(=>)(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = LpConstraint(expr, convert(Float64, a), =>)
+Base.:(>=)(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = LpConstraint(expr, convert(Float64, a), >=)
 Base.:(!=)(expr::LpAffineExpression{K,V}, a::Real) where {K<:_varMapType,V<:Real} = LpConstraint(expr, convert(Float64, a), !=)
+
+Base.:(==)(a::Real, expr::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = LpConstraint(expr, convert(Float64, a), ==)
+Base.:(<=)(a::Real, expr::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = LpConstraint(expr, convert(Float64, a), >=)
+Base.:(>=)(a::Real, expr::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = LpConstraint(expr, convert(Float64, a), <=)
+Base.:(!=)(a::Real, expr::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = LpConstraint(expr, convert(Float64, a), !=)
 
 Base.:(==)(expr1::LpAffineExpression{K,V}, expr2::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = expr1 - expr2 == 0.0
 Base.:(<=)(expr1::LpAffineExpression{K,V}, expr2::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = expr1 - expr2 <= 0.0
-Base.:(=>)(expr1::LpAffineExpression{K,V}, expr2::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = expr1 - expr2 => 0.0
+Base.:(>=)(expr1::LpAffineExpression{K,V}, expr2::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = expr1 - expr2 >= 0.0
 Base.:(!=)(expr1::LpAffineExpression{K,V}, expr2::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real} = expr1 - expr2 != 0.0
 
 function addInPlace(expr1::LpAffineExpression{K,V}, expr2::LpAffineExpression{K,V}) where {K<:_varMapType,V<:Real}

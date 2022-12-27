@@ -25,6 +25,7 @@ module Instance
         constraints::Dict{Union{String,Int}, BConstraint}
         objective::Union{Variable, Nothing}   # optional
         sense::Integer                                  # 0: satisfaction, 1: minimization, -1: maximization
+        variables_instantiated::Vector{Variable}
 
         function Problem()
             """
@@ -35,7 +36,7 @@ module Instance
             objective = nothing
             sense = 0
 
-            return new(vars, constrs, objective, sense)
+            return new(vars, constrs, objective, sense, [])
         end
         
         function Problem(variables::AbstractArray{Variable}, 
@@ -51,7 +52,7 @@ module Instance
                 objective = nothing
             end
             sense = sign(sense)
-            return new(vars, constrs, objective, sense)
+            return new(vars, constrs, objective, sense, [])
         end
 
         function Problem(variables::AbstractArray{Variable}, 
@@ -68,7 +69,7 @@ module Instance
                 objective = nothing
             end
             sense = sign(sense)
-            return new(vars, constrs, objective, sense)
+            return new(vars, constrs, objective, sense, [])
         end
     end
 

@@ -10,7 +10,7 @@ module TestColoring
     using ..Benchmark: queens_cp, colorability_cp, getEdges, getMaxColors
     using ..Wrapper: all_different
 
-    path = "..\\..\\External instances\\instances_coloring\\random-10.col"
+    path = "..\\..\\External instances\\instances_coloring\\random-40.col"
     edges, num_vertices, num_edges = getEdges(path)
     #max_colors_u = getMaxColors(edges, num_vertices)
     max_colors_u = num_vertices
