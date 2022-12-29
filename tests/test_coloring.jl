@@ -21,7 +21,7 @@ module TestColoring
 
     ## Solving by dichotomy ##
 
-    println("\nLet's test the dichotomy algorithm on the coloring")
+    println("\nLet's test the dichotomy algorithm on the coloring problem")
     
     status, sol_time = solve(instance)
     println("status: ", status)

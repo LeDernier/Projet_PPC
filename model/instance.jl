@@ -104,10 +104,31 @@ module Instance
     ### ADD A BINARY CONSTRAINT TO THE INSTANCE ###
 
     function addConstraints(instance::Problem, constraints::Vector{BConstraint})
+        """
+            The list of binary constraints are added to the instance of a problem.
+            
+            If there are a set of constraints acting on the same pair of variables, 
+            then the feasible points are intersected. Therefore, there will only be 
+            a constraint per pair of variables.
+        """
         for constraint in constraints
-            if ~(constraint.ID in keys(instance.constraints))
-                #push!(instance.constraints, constraint)        # TODO: remove
-                instance.constraints[constraint.ID] = constraint
+            
+            if constraint.ID in keys(instance.constraints)
+                # if there already exists a constraint on the variables x,y,...
+                # ...intersect the new and the existing binary constraint
+                intersect_constraint(instance, constraint.ID, constraint)
+            else
+                varsnames = reverse([string(id_var) for id_var in constraint.varsIDs])
+                name_bconstr_rev = "bC_"*varsnames[2]*"_"*varsnames[1]
+                if name_bconstr_rev in keys(instance.constraints)
+                    # if there already exists a constraint on the variables y,x,...
+                    # ...intersect the new constraint reversed and the existing binary constraint
+                    constraint.feasible_points = [(point[2],point[1]) for point in feasible_points]
+                    intersect_constraint(instance, name_bconstr_rev, constraint)
+                else
+                    # add the constraint if there are no constraint on the variables x,y
+                    instance.constraints[constraint.ID] = constraint
+                end
             end
         end
     end
@@ -210,14 +231,41 @@ module Instance
 
 
     function addConstraints(instance::Problem, constraints::Vector{<:LpConstraint})
+        """
+            The list of linear constraints (lp) are converted to a list of binary 
+            constraints. Then, they are added to the instance of a problem.
+            
+            If there are a set of constraints acting on the same pair of variables, 
+            then the feasible points are intersected. Therefore, there will only be 
+            a constraint per pair of variables.
+        """
+
         dualVars = Vector{Variable}()
         for constraint in constraints
             if ~(constraint.ID in keys(instance.constraints))
-                varsnames = [var.ID for var in collect(keys(constraint.lhs.terms))]
+                varsnames = [string(var.ID) for var in collect(keys(constraint.lhs.terms))]
                 feasible_points = makeExplicitBinary(constraint)
                 if length(varsnames) == 2
-                    bconstr = BConstraint(varsnames, feasible_points)
-                    instance.constraints[bconstr.ID] = bconstr
+                    name_bconstr = "bC_"*varsnames[1]*"_"*varsnames[2]
+                    bconstr = BConstraint(name_bconstr ,varsnames, feasible_points)
+                    if name_bconstr in keys(instance.constraints)
+                        # if there already exists a constraint on the variables x,y,...
+                        # ...intersect the new and the existing binary constraint
+                        intersect_constraint(instance, name_bconstr, bconstr)
+                    else
+                        varsnames = reverse(varsnames)
+                        name_bconstr_rev = "bC_"*varsnames[2]*"_"*varsnames[1]
+                        if name_bconstr_rev in keys(instance.constraints)
+                            # if there already exists a constraint on the variables y,x,...
+                            # ...intersect the new constraint reversed and the existing binary constraint
+                            feasible_points = [(point[2],point[1]) for point in feasible_points]
+                            bconstr = BConstraint(name_bconstr ,varsnames, feasible_points)
+                            intersect_constraint(instance, name_bconstr_rev, bconstr)
+                        else
+                            # add the constraint if there are no constraint on the variables x,y
+                            instance.constraints[bconstr.ID] = bconstr
+                        end
+                    end
                 else
                     # if number of variables > 2, create a dual variable representing the constraint
                     num_dVariables[] += 1
@@ -265,5 +313,10 @@ module Instance
         end
 
         addVariables(instance, [objective])        
+    end
+
+    function intersect_constraint(instance::Problem, id_existingBConstraint, newBConstraint::BConstraint)
+        existingBConstraint = instance.constraints[id_existingBConstraint]
+        filter!(e -> e in newBConstraint.feasible_points, existingBConstraint.feasible_points)
     end
 end

@@ -12,7 +12,7 @@ module Solver
 
     export backtrack, solve
 
-    function solve(instance::Problem, maxTime::Real=2)
+    function solve(instance::Problem, maxTime::Real=Inf)
         """
         Parameters
             - instance: problem instance.
@@ -22,6 +22,14 @@ module Solver
         solutionStatus = PSolutionNoSolutionFound
     
         init_time = time()
+
+        ## filtering phase
+        num_constr_before = length(instance.constraints)
+        #intersect_constraints(instance)
+        num_constr_removed = num_constr_before - length(instance.constraints)
+        if num_constr_removed > 0
+            println("Number of constraints removed by intersection: ", num_constr_removed, "/",num_constr_before)
+        end
     
         ## resolution phase
         if instance.sense == 0
@@ -81,9 +89,9 @@ module Solver
         ## estimate middle_idx by the dichotomy method ##
         resolveOk = false
         right_idx_resolveOk = false     # true if the solution associated to the right_idx is ok
-        left_idx_resolveOk = false      # true if the solution associated to the left_idx is ok
-        instance_copy = deepcopy(instance) 
-        while true
+            left_idx_resolveOk = false      # true if the solution associated to the left_idx is ok
+            instance_copy = deepcopy(instance) 
+            while true
             
             # backtrack on a copy of the instance
             copyFromTo(instance, instance_copy)
