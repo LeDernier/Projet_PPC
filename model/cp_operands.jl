@@ -57,7 +57,10 @@ module BOperands
                 Constructor of an unnamed constraint.
             """
             num_bConstraints[] += 1
-            name = "bC_"*string(num_bConstraints[])         # bC := binary constraint
+            #name = "bC_"*string(num_bConstraints[])         # bC := binary constraint
+            varID1 = replace(string(varsIDs[1]), "_" => "")
+            varID2 = replace(string(varsIDs[2]), "_" => "")
+            name = "bC_"*varID1*"_"*varID2
             return new(name, varsIDs, feasible_points)
         end
 
@@ -66,6 +69,9 @@ module BOperands
             """
                 Constructor of a named constraint.
             """
+            varID1 = replace(string(varsIDs[1]), "_" => "")
+            varID2 = replace(string(varsIDs[2]), "_" => "")
+            name = "bC_"*varID1*"_"*varID2*"_"*name
             return new(name, varsIDs, feasible_points)
         end
     end
