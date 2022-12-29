@@ -10,7 +10,6 @@ function backtrack(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf)::B
     # arc-consistency
     isInconsistent = directional_arcconsistency(instance)
     if isInconsistent
-        println("Inconsistent partial assignation after arc-consistency phase.")
         return false
     end
 
@@ -88,7 +87,7 @@ end
 
 function directional_arcconsistency(instance::Problem, order_constraints=identity)
     """
-        A lazy version of the initAC4 algorithm.
+        A lazy version of the initAC4 algorithm with forward ahead.
 
         Parameters
             - instance: instance of a problem.
@@ -123,6 +122,7 @@ function directional_arcconsistency(instance::Problem, order_constraints=identit
         idx_val_j = idx_j_min           # keep track of the index of the value of j in its domain
         for val_j in var_j.domain[idx_j_min:idx_j_max]
             if val_i == undef
+                # forward checking : we remove all the val_j if (var_i,var_j) not in constr.feasible_points
                 for val_i in var_i.domain[idx_i_min:idx_i_max]
                     if (val_i, val_j) in constr.feasible_points
                         # add the (x,y) key to the dictionary if it does not exist
@@ -141,7 +141,13 @@ function directional_arcconsistency(instance::Problem, order_constraints=identit
                 end
                 
                 # if val_j is not consistent, we remove it from the domain
-                if !(val_j in keys(count[(idx_var[var_i.ID], idx_var[var_j.ID])]))
+                isInconsistentPair = !((idx_var[var_i.ID], idx_var[var_j.ID]) in keys(count))           # if <y,b> is inconsisent with <x,a> for all b
+                isInconsistentValue = false
+                if !isInconsistentPair
+                    isInconsistentValue = !(val_j in keys(count[(idx_var[var_i.ID], idx_var[var_j.ID])]))   # if <y,b> is inconsisent with <x,a>
+                end
+
+                if isInconsistentValue
                     var_j.domain[idx_j_max], var_j.domain[idx_val_j] = var_j.domain[idx_val_j], var_j.domain[idx_j_max]
                     var_j.index_domain = var_j.index_domain - 1
                 end
@@ -208,7 +214,7 @@ function getRootSuffixIDMap(instance::Problem)
 end
 
 function intersect_constraints(instance::Problem)
-    """
+    """ TODO: DEPRECATED. It is too slow.
         If there are more than one constraints on x,y, they are intersected.
     """
 
