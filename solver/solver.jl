@@ -9,8 +9,9 @@ module Solver
     
     using ..Instance: Problem, getVariable,addConstraint        # .. because the include(..model/instance.jl) should be done in the file that includes this file
     include("backtrack.jl")
+    include("backjumping.jl")
 
-    export backtrack, solve
+    export backjumping, backtrack, solve
 
     function solve(instance::Problem, maxTime::Real=Inf)
         """
