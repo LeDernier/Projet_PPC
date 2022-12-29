@@ -1,9 +1,41 @@
-function consistant(instance::Problem)
+
+using ..Instance: Problem, Variable, getVariable
+
+
+function consistant(instance::Problem, var_names::Array, k::Int, i::Int, a::Real)
+    # check that all constraints are ok with the affectation
+    # do we need to check a1, ... aK ? or is it the same with only current a ?
+    x_name = var_names[i]
+    for (key, c) in instance.constraints
+        var1 = getVariable(instance, c.varsIDs[1])
+        var2 = getVariable(instance, c.varsIDs[2])
+        if var1.ID in var_names[1:k]
+            # if var2.ID in var_names[1:k]
+                # if !((var1.value, var2.value) in c.feasible_points)
+                #     return false
+                # end
+            if var2.ID == x_name && !((var1.value, a) in c.feasible_points)
+                return false
+            # elseif !(var1.value in [p[1] for p in c.feasible_points])
+            #     return false
+            end
+        elseif var2.ID in var_names[1:k]
+            if var1.ID == x_name && !((a, var2.value) in c.feasible_points)
+                return false
+            # elseif !(var2.value in [p[2] for p in c.feasible_points])
+            #     return false
+            end
+        elseif var1.ID == x_name && !(a in [p[1] for p in c.feasible_points])
+            return false
+        elseif var2.ID == x_name && !(a in [p[2] for p in c.feasible_points])
+            return false
+        end
+    end
     return true
 end
 
 
-function selectValue(D::Vector, i::Tnt, latest::Int)
+function selectValue1(instance::Problem, var_names::Array, D::Vector, i::Int, latest::Int)
     while length(D) > 0
         a = pop!(D)
         consist = true
@@ -12,7 +44,7 @@ function selectValue(D::Vector, i::Tnt, latest::Int)
             if k > latest
                 latest = k
             end
-            if !consistant() # to change
+            if !consistant(instance, var_names, k, i, a)
                 consist = false
             else
                 k += 1
@@ -22,41 +54,66 @@ function selectValue(D::Vector, i::Tnt, latest::Int)
             return a, latest
         end
     end
-    return -1, latest
+    if latest == i
+        latest -= 1
+    end
+    return undef, latest
+end
+
+
+function selectValue(instance::Problem, var_names::Array,var::Variable, i::Int, latest::Int)
+    while var.index_domain > 0
+        a = var.domain[var.index_domain]
+        var.index_domain -= 1
+        consist = true
+        k = 1
+        while k < i && consist
+            if k > latest
+                latest = k
+            end
+            if !consistant(instance, var_names, k, i, a)
+                consist = false
+            else
+                k += 1
+            end
+        end
+        if consist
+            return a, latest
+        end
+    end
+    if latest == i
+        latest -= 1
+    end
+    return undef, latest
 end
 
 
 function backjumping(instance::Problem)
     n = length(instance.variables)
-    values = Array{Real, 1}(undef, n)
-    domains = Array{Vector, 1}(undef, n)
-    var_names = collect(keys(instance.variables))
+    var_names = collect(keys(instance.variables)) 
+    # TODO: sort var_names so that we go through the list in a better order
+    # for instance, sort in increasing domain size
+
     i = 1
     latest = 0
-    var = instance.variables[var_names[i]]
-    domain = copy(var.domain)
-    while i >= 0 && i <= n
-        val = selectValue(domain, i)
-        domains[i] = domain
-        values[i] = val
-        if val == -1
+    while i > 0 && i <= n
+        var = instance.variables[var_names[i]]
+        if i != latest
+            var.index_domain = length(var.domain)
+        end
+        val, latest = selectValue(instance, var_names, var, i, latest)
+        if val == undef
             i = latest
-            if isdefined(domains, i)
-                domain = domains[i]
-            else
-                var = instance.variables[var_names[i]]
-                domain = copy(var.domain)
-            end
         else
+            var.value = val
             i += 1
             latest = 0
-            var = instance.variables[var_names[i]]
-            domain = copy(var.domain)
         end
     end
+
     if i == 0
-        return -1  # inconsistant
+        return false # inconsistant
     else
-        return values  # we found a solution
+        return true  # we found a solution
     end
 end
