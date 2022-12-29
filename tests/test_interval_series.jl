@@ -9,15 +9,19 @@ module TestInterval
     using ..Solver
     using ..Benchmark: allIntervalSeriesBinary
     using ..Wrapper: all_different
+    using Dates
 
     println("\nLet's test the backtrack algorithm on the interval series")
     
-    instance = allIntervalSeriesBinary(5)
+    instance = allIntervalSeriesBinary(7)
 
     print(instance)
-    found_sol = backjumping(instance)
-    # found_sol = backtrack(instance)
+    start = Dates.now()
+    # found_sol = backjumping(instance)
+    found_sol = backtrack(instance)
+    time_elapsed = Dates.now() - start
     println("found a solution? ", found_sol)
+    println("time elapsed:", time_elapsed)
 
     for var in values(instance.variables)
         println(string(var)*": "*string(var.value))
