@@ -26,7 +26,6 @@ module Solver
 
         ## filtering phase
         num_constr_before = length(instance.constraints)
-        #intersect_constraints(instance)
         num_constr_removed = num_constr_before - length(instance.constraints)
         if num_constr_removed > 0
             println("Number of constraints removed by intersection: ", num_constr_removed, "/",num_constr_before)
@@ -72,7 +71,6 @@ module Solver
                 - maxTime: maximum time given to the solver to find the solution.
         """
         statusSol = PSolutionNoSolutionFound
-        delta_time = time() - init_time
 
         obj_values = instance.objective.domain
         
@@ -101,7 +99,7 @@ module Solver
             makeFeasible(instance_copy)                                  # reset var variables; TODO: to improve using inverse backtracking
             resolveOk = actualSolveCSP(instance_copy, init_time, maxTime)
             
-            
+            delta_time = time() - init_time
             if resolveOk
                 copyFromTo(instance_copy, instance)
                 println("resolveOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time)

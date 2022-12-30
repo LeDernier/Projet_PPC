@@ -11,6 +11,11 @@ function backtrack(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf)::B
     isInconsistent = directional_arcconsistency(instance)
     if isInconsistent
         return false
+    else
+        isInconsistent = directional_arcconsistency(instance, true)
+        if isInconsistent
+            return false
+        end
     end
 
     # check that all constraints are respected
@@ -85,32 +90,41 @@ end
 
 ### ARC-CONSISTENCY ALGORTHMS ###
 
-function directional_arcconsistency(instance::Problem, order_constraints=identity)
+function directional_arcconsistency(instance::Problem, filterFirst=false)
     """
-        A lazy version of the initAC4 algorithm with forward ahead.
+        A lazy version of the initAC4 algorithm with forward checking.
 
         Parameters
             - instance: instance of a problem.
-            - order_constraints: an order to be applied to values(instance.constraints).
+            - filterFirst: for a constraint C_{x,y}, if true, the domain of the variable
+             x is filtered based on y. Reciprocally, if false, the domain of the variable
+             y is filtered based on x.
     """
 
     num_vars = length(instance.variables)
     list_vars = collect(values(instance.variables))
-    list_constraints = order_constraints(values(instance.constraints))
+    list_constraints = values(instance.constraints)
     # count(x,y,b) := for two variables x,y, it counts the number of values of x in D_x that are consistent with <y,b>
     count = Dict{Tuple{Integer, Integer}, Dict{Float64, Integer}}()
     idx_var = Dict(list_vars[i].ID => i for i in 1:num_vars)
     
     for constr in list_constraints
+        # variables
+        constr_vars = [instance.variables[id_var] for id_var in constr.varsIDs]
+        if filterFirst
+            var_i = constr_vars[2]
+            var_j = constr_vars[1]
+        else
+            var_i = constr_vars[1]
+            var_j = constr_vars[2]
+        end
         
         # variable 1 or i
-        var_i = list_vars[1]
         idx_i_min = var_i.index_domain_lower
         idx_i_max = var_i.index_domain
         val_i = var_i.value
         
-        # variable 2 or j
-        var_j = list_vars[2]
+        # variable 2 or 
         idx_j_min = var_j.index_domain_lower
         idx_j_max = var_j.index_domain
         
@@ -118,24 +132,32 @@ function directional_arcconsistency(instance::Problem, order_constraints=identit
         if var_j.value != undef
             break
         end
+
+        count[(idx_var[var_i.ID], idx_var[var_j.ID])] = Dict()
         
         idx_val_j = idx_j_min           # keep track of the index of the value of j in its domain
         for val_j in var_j.domain[idx_j_min:idx_j_max]
             if val_i == undef
                 # forward checking : we remove all the val_j if (var_i,var_j) not in constr.feasible_points
                 for val_i in var_i.domain[idx_i_min:idx_i_max]
-                    if (val_i, val_j) in constr.feasible_points
-                        # add the (x,y) key to the dictionary if it does not exist
-                        if !((idx_var[var_i.ID], idx_var[var_j.ID]) in keys(count))
-                            count[(idx_var[var_i.ID], idx_var[var_j.ID])] = Dict()
-                        end
+                      
+                    if filterFirst
+                        point = (val_j, val_i)
+                    else
+                        point = (val_i, val_j)
+                    end
+
+                    #inTheRange = point >= constr.min_feasible_point || point <= constr.max_feasible_point      # a faster way to check if the point is a feasible point
+                    inTheRange = true
+                    if inTheRange && point in constr.feasible_points
 
                         if val_j in keys(count[(idx_var[var_i.ID], idx_var[var_j.ID])])
                             # increase the value associated to the key val_j
                             count[(idx_var[var_i.ID], idx_var[var_j.ID])][val_j] += 1
                         else
-                            # add the val_j key to the dictionary if it does not exist
+                            # add the val_j key to the dictionary makes val_j a consistent value for var_j
                             count[(idx_var[var_i.ID], idx_var[var_j.ID])][val_j] = 1
+                            break
                         end
                     end
                 end
@@ -153,20 +175,138 @@ function directional_arcconsistency(instance::Problem, order_constraints=identit
                 end
                 idx_val_j += 1
             else
+
+                if filterFirst
+                    point = (val_j, val_i)
+                else
+                    point = (val_i, val_j)
+                end
+
                 # if val_j is not consistent, we remove it from the domain
-                if !((val_i, val_j) in constr.feasible_points)
+                #inTheRange = point >= constr.min_feasible_point || point <= constr.max_feasible_point      # a faster way to check if the point is a feasible point
+                inTheRange = true
+                if !inTheRange || !((val_i, val_j) in constr.feasible_points)
                     var_j.domain[idx_j_max], var_j.domain[idx_val_j] = var_j.domain[idx_val_j], var_j.domain[idx_j_max]
                     var_j.index_domain = var_j.index_domain - 1
                 end
                 idx_val_j += 1
             end
         end
+
+        # the problem is inconsistent (return true) if the virtual domain of var_j is empty
+        if var_j.index_domain == 0 || var_j.index_domain < var_j.index_domain_lower
+            #println("The variable ", var.ID, " is inconsistent: index_domain_u=", var.index_domain, ", index_domain_l=", var.index_domain_lower)
+            return true
+        end
     end
 
-    # return false if there are variables with no consistent values
-    for var in values(instance.variables)
-        if var.index_domain == 0 || var.index_domain < var.index_domain_lower
-            #println("The variable ", var.ID, " is inconsistent: index_domain_u=", var.index_domain, ", index_domain_l=", var.index_domain_lower)
+    return false
+end
+
+
+function directional_arcconsistency_2(instance::Problem, filterFirst=false)
+    """
+        A lazy version of the initAC4 algorithm with forward checking.
+
+        Parameters
+            - instance: instance of a problem.
+            - filterFirst: for a constraint C_{x,y}, if true, the domain of the variable
+            x is filtered based on y. Reciprocally, if false, the domain of the variable
+            y is filtered based on x.
+    """
+
+    num_vars = length(instance.variables)
+    list_vars = collect(values(instance.variables))
+    list_constraints = values(instance.constraints)
+    # count(x,y,b) := for two variables x,y, it counts the number of values of x in D_x that are consistent with <y,b>
+    count = Dict{Tuple{Integer, Integer}, Dict{Float64, Integer}}()
+    idx_var = Dict(list_vars[i].ID => i for i in 1:num_vars)
+    var_idx = Dict(i => list_vars[i].ID for i in 1:num_vars)
+    
+    for constr in list_constraints
+        constr_vars = [instance.variables[id_var] for id_var in constr.varsIDs]
+
+        # variables
+        var_i = constr_vars[1]
+        var_j = constr_vars[2]
+        
+        # only apply arc-consistency to non-fixed variables
+        if var_j.value != undef
+            break
+        end
+
+        count[(idx_var[var_i.ID], idx_var[var_j.ID])] = Dict()
+        count[(idx_var[var_j.ID], idx_var[var_i.ID])] = Dict()
+
+        for point in constr.feasible_points
+            # filter the domain of var_j based on the domain of var_i
+            if !(last(point) in keys(count[(idx_var[var_i.ID], idx_var[var_j.ID])]))
+                count[(idx_var[var_i.ID], idx_var[var_j.ID])][last(point)] = 1
+            else
+                count[(idx_var[var_i.ID], idx_var[var_j.ID])][last(point)] += 1
+            end
+
+            # filter the domain of var_i based on the domain of var_j
+            if !(first(point) in keys(count[(idx_var[var_j.ID], idx_var[var_i.ID])]))
+                count[(idx_var[var_j.ID], idx_var[var_i.ID])][first(point)] = 1
+            else
+                count[(idx_var[var_j.ID], idx_var[var_i.ID])][first(point)] =+ 1
+            end
+        end
+    end
+
+    for pair_vars in keys(count)
+        # count(x,y,b) contains information to filter the domain of y
+        # var_i or var_1
+        id_var_i = var_idx[first(pair_vars)]
+        var_i = instance.variables[id_var_i]
+        
+        # var_j or var_2
+        id_var_j = var_idx[last(pair_vars)]
+        var_j = instance.variables[id_var_j]
+
+        # only apply arc-consistency to non-fixed variables
+        if var_j.value != undef
+            break
+        end
+        
+        idx_j_min = var_j.index_domain_lower
+        idx_j_max = var_j.index_domain
+
+        idx_val_j = idx_j_min           # keep track of the index of the value of j in its domain
+        for val_j in var_j.domain[idx_j_min:idx_j_max]
+            # check consistency of val_j
+            isInconsistentValue_j = !(val_j in keys(count[(idx_var[var_i.ID], idx_var[var_j.ID])]))   # if <y,b> is inconsisent with <x,a>
+            if isInconsistentValue_j
+                var_j.domain[idx_j_max], var_j.domain[idx_val_j] = var_j.domain[idx_val_j], var_j.domain[idx_j_max]
+                var_j.index_domain = var_j.index_domain - 1
+            end
+
+            idx_val_j += 1
+        end
+
+        idx_i_min = var_i.index_domain_lower
+        idx_i_max = var_i.index_domain
+
+        idx_val_i = idx_i_min           # keep track of the index of the value of i in its domain
+        for val_i in var_i.domain[idx_i_min:idx_i_max]
+            # check consistency of val_i
+            isInconsistentValue_i = !(val_i in keys(count[(idx_var[var_j.ID], idx_var[var_i.ID])]))   # if <y,b> is inconsisent with <x,a>
+            if isInconsistentValue_i
+                var_i.domain[idx_i_max], var_i.domain[idx_val_i] = var_i.domain[idx_val_i], var_i.domain[idx_i_max]
+                var_i.index_domain = var_i.index_domain - 1
+            end
+
+            idx_val_i += 1
+        end
+
+        # the problem is inconsistent (return true) if the virtual domain of var_j is empty
+        if var_j.index_domain == 0 || var_j.index_domain < var_j.index_domain_lower
+            return true
+        end
+
+        # the problem is inconsistent (return true) if the virtual domain of var_i is empty
+        if var_i.index_domain == 0 || var_i.index_domain < var_i.index_domain_lower
             return true
         end
     end
@@ -176,63 +316,5 @@ end
 
 ### PREFILTERING ALGORTHMS ###
 
-function getRootSuffixIDMap(instance::Problem)
-    """ TODO: DEPRECATED: Remove if it continues to be slow
-        Returns a dictionary where there is a key for each pair of variables.
-        Keys are strings of the form:
-            key = bc_idVar1_idVar2
-        and the values are the IDs of the constraints if the ID starts with the key:
-            value = [bc_idVar1_idVar2_1, bc_idVar1_idVar2_2,...]
-    """
-    dict_pair_constr = Dict{String, Vector{String}}()
-    for constr in values(instance.constraints)
-        ID_splitted = split(constr.ID,"_")
-        ID_root = join(ID_splitted[1:3], "_")
-        
-        ID_splitted[2], ID_splitted[3] = ID_splitted[3], ID_splitted[2]
-        ID_root_rev = join(ID_splitted[1:3], "_")
-        if ID_root in keys(dict_pair_constr)
-            push!(dict_pair_constr[ID_root], constr.ID)
-        else
-            if ID_root_rev in keys(dict_pair_constr)
-                # reverse the order of the variables in the constraint
-                ID_suffix = ""
-                if length(ID_splitted) >= 4
-                    ID_suffix = "_"*join(ID_splitted[4:length(ID_splitted)], "_")
-                end
-                constr.ID = ID_root*ID_suffix
-                constr.varsIDs = reverse(constr.varsIDs)
-                constr.feasible_points = [(point[2],point[1]) for point in constr.feasible_points]
-                push!(dict_pair_constr[ID_root], constr.ID)
-            else
-                dict_pair_constr[ID_root] = [constr.ID]
-            end
-        end
-    end
-
-    return dict_pair_constr
-end
-
-function intersect_constraints(instance::Problem)
-    """ TODO: DEPRECATED. It is too slow.
-        If there are more than one constraints on x,y, they are intersected.
-    """
-
-    ## group the constraints acting on the same pair of variables 
-    dict_pair_constr = getRootSuffixIDMap(instance)
-
-    ## intersect the constraints acting on the same pair of variables
-    for ids_bConstr in values(dict_pair_constr)
-        if length(ids_bConstr) >= 2
-            constr_1 = instance.constraints[ids_bConstr[1]]
-            numb_ids = length(ids_bConstr)
-            for i in 2:numb_ids
-                constr_i = instance.constraints[ids_bConstr[i]]
-                filter!(e -> e in constr_i.feasible_points, constr_1.feasible_points)
-                delete!(instance.constraints, constr_i.ID)
-            end
-        end
-    end
-end
 
 ### SORTING ALGORTHMS ON VARIABLES ###

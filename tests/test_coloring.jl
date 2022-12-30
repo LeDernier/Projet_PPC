@@ -17,7 +17,7 @@ module TestColoring
     chrom_number_u = Variable("chromatic_number", collect(1:max_colors_u), max_colors_u)
     instance = colorability_cp(edges,num_vertices, chrom_number_u)
 
-    print(instance)
+    #print(instance)
 
     ## Solving by dichotomy ##
 

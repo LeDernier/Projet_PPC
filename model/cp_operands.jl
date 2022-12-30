@@ -50,6 +50,8 @@ module BOperands
         ID::String
         varsIDs::Vector{<:Union{String,Int,Tuple}}       # variable names
         feasible_points::Vector{Tuple{<:Union{<:Real, <:Tuple}, <:Union{<:Real, <:Tuple}}}
+        min_feasible_point::Tuple
+        max_feasible_point::Tuple
 
         function BConstraint(varsIDs::Vector{<:Union{String,Int,Tuple}}, 
                             feasible_points::Vector{<:Tuple})
@@ -61,7 +63,9 @@ module BOperands
             varID1 = replace(string(varsIDs[1]), "_" => "")
             varID2 = replace(string(varsIDs[2]), "_" => "")
             name = "bC_"*varID1*"_"*varID2
-            return new(name, varsIDs, feasible_points)
+
+            feasible_points = sort(feasible_points)
+            return new(name, varsIDs, feasible_points, first(feasible_points), last(feasible_points))
         end
 
         function BConstraint(name::String, varsIDs::Vector{<:Union{String,Int,Tuple}}, 
@@ -69,10 +73,12 @@ module BOperands
             """
                 Constructor of a named constraint.
             """
-            varID1 = replace(string(varsIDs[1]), "_" => "")
+            #= varID1 = replace(string(varsIDs[1]), "_" => "")  #TODO: remove this since intersect_constraints() failed in solver
             varID2 = replace(string(varsIDs[2]), "_" => "")
-            name = "bC_"*varID1*"_"*varID2*"_"*name
-            return new(name, varsIDs, feasible_points)
+            name = "bC_"*varID1*"_"*varID2*"_"*name =#
+            
+            feasible_points = sort(feasible_points)
+            return new(name, varsIDs, sort(feasible_points), first(feasible_points), last(feasible_points))
         end
     end
     
