@@ -149,7 +149,8 @@ module Instance
         println("\nVariables: "*string(numV))
         if numV <= maxVarsToShow
             for var in values(instance.variables)
-                println(string(var)*": "*string(var.value))
+                #println(string(var)*": "*string(var.value))
+                println(string(var)*": "*string(var.value), ", domain: ", var.domain)
             end
         end
 
@@ -194,6 +195,8 @@ module Instance
             push!(vars, var)
             push!(varsValues, var.domain)
         end
+        #= println("\nvars: ", vars)
+        println("varsValues: ", varsValues, "\n") =#
         cartesianProduct = Iterators.product((varValues for varValues in varsValues)...)
         feasibleValues = Vector{Tuple}()
             
@@ -204,6 +207,9 @@ module Instance
             # add the point to the feasible points if it satisfies the constraint
             if isFeasiblePoint(constr.rhs, valueLHS, constr.relation)
                 push!(feasibleValues, valueVars)
+                #println("Constraint: ", constr.ID, ", point: ", valueVars, ", Feasible")
+            else
+                #println("Constraint: ", constr.ID, ", point: ", valueVars, ", Infeasible")
             end
         end
 

@@ -19,7 +19,9 @@ module TestQueens
 
     println("\nLet's solve the "*string(N)*"-queens problem")
 
-    status, time = solve(fourQueensLP)
+    status, sol_time = solve(fourQueensLP)
+    println("status: ", status)
+    println("time: ", sol_time, "\n")
 
     for var in values(fourQueensLP.variables)
         println(string(var)*": "*string(var.value))

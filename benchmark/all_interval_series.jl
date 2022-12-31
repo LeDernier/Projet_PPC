@@ -108,22 +108,27 @@ function allIntervalSeries(n::Int)::Problem
     addConstraints(instance, all_different(s_variables))
     addConstraints(instance, all_different(v_variables))
     println("line 30")
-    println(instance)
+    #println(instance)
     M = 2*n
     for i in 1:n-1
         v_var = v_variables[i]
         nu_var = nu_variables[i]
         s_var_i = s_variables[i]
         s_var_j = s_variables[i+1]
-        s_var = s_var_i - s_var_j
+        s_var_diff = s_var_i - s_var_j
 
         # addConstraint(instance, v_variables[i] == abs(s_variables[i] - s_variables[i+1]))
-        #addConstraint(instance, 0.0 <= v_var + s_var)
-        addConstraint(instance, v_var + s_var >= 0.0)
-        addConstraint(instance, v_var - s_var >= 0.0)
-        addConstraint(instance, v_var - M*nu_var <= s_var_i - s_var_j)
-        #addConstraint(instance, v_var - M*(1-nu_var) <= s_var_j - s_var_i)
-        addConstraint(instance, v_var + M*(nu_var-1) <= s_var_j - s_var_i)
+        #addConstraint(instance, 0.0 <= v_var + s_var_diff)
+
+        #= addConstraint(instance, v_var + s_var_diff >= 0.0)
+        addConstraint(instance, v_var - s_var_diff >= 0.0)
+        addConstraint(instance, v_var - M*nu_var <= s_var_diff)
+        addConstraint(instance, v_var - M*(1-nu_var) <= -s_var_diff) =#
+
+        addConstraint(instance, s_var_diff <= M*(1-nu_var))
+        addConstraint(instance, s_var_diff >= -M*nu_var)
+        addConstraint(instance, v_var - s_var_diff <= M*nu_var)
+        addConstraint(instance, v_var - s_var_diff >= -M*nu_var)
     end
 
     return instance
