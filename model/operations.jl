@@ -84,6 +84,7 @@ end
         Modify the virtual domain of x so that x <= b, where x is a variable and b is a constant.
     """
     if constant in variable.domain
+        variable.domain = sort(variable.domain)
         indexConstant = findfirst(isequal(constant), variable.domain)
         variable.index_domain = indexConstant
     end
@@ -94,6 +95,7 @@ function makeGE(variable::Variable, constant::Real)
         Modify the virtual domain of x so that x <= b, where x is a variable and b is a constant.
     """
     if constant in variable.domain
+        variable.domain = sort(variable.domain)
         indexConstant = findfirst(isequal(constant), variable.domain)
         variable.index_domain_lower = indexConstant
     end

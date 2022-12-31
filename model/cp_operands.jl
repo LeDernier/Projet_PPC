@@ -50,8 +50,8 @@ module BOperands
         ID::String
         varsIDs::Vector{<:Union{String,Int,Tuple}}       # variable names
         feasible_points::Vector{Tuple{<:Union{<:Real, <:Tuple}, <:Union{<:Real, <:Tuple}}}
-        min_feasible_point::Tuple
-        max_feasible_point::Tuple
+        min_feasible_point::Tuple           # TODO: may not be useful in solver, to remove ?
+        max_feasible_point::Tuple           # TODO: may not be useful in solver, to remove ?
 
         function BConstraint(varsIDs::Vector{<:Union{String,Int,Tuple}}, 
                             feasible_points::Vector{<:Tuple})

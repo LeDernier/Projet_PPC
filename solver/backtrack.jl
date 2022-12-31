@@ -1,6 +1,6 @@
 using ..Instance: Problem, getVariable
 
-function backtrack(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf)::Bool
+function backtrack(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf, depth=0, affectedVars="")::Bool
 
     # check if the delta_time <= maxTime in the solver
     if time() - init_time > maxTime
@@ -8,16 +8,16 @@ function backtrack(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf)::B
     end
 
     # arc-consistency
-    isInconsistent = directional_arcconsistency(instance)
+    isInconsistent = directional_arcconsistency(instance, false, true, false)
     if isInconsistent
         return false
     else
-        isInconsistent = directional_arcconsistency(instance, true)
+        isInconsistent = directional_arcconsistency(instance, true, true, false)
         if isInconsistent
             return false
         end
     end
-
+   
     # check that all constraints are respected
     for c in values(instance.constraints)
         id1 = c.varsIDs[1]
@@ -45,9 +45,13 @@ function backtrack(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf)::B
     for var in values(instance.variables)
         if var.value == undef
             completed = false
-            if length(var.domain) < domain_size
+            _domain_size = length(var.domain)
+            if _domain_size < domain_size    
+            #_virtual_domain_size = var.index_domain - var.index_domain_lower
+            #if _virtual_domain_size < domain_size       
                 undefined_var = var
-                domain_size = length(var.domain)
+                domain_size = _domain_size
+                #domain_size = _virtual_domain_size
             end
         end
     end
@@ -63,34 +67,48 @@ function backtrack(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf)::B
     # -> forward checking or maintain-arc-consistency or in between both
     # idea: maintain-arc-consistency only at the root and then forward checking here
 
+    # keep track of the virtual domain
+
     i_min = undefined_var.index_domain_lower
     i_max = undefined_var.index_domain
+    idx_current = i_min
     for current_value in undefined_var.domain[i_min:i_max]
-        undefined_var.value = current_value
-        push!(instance.variables_instantiated, undefined_var)
         
         # keep track of the virtual domain
-        index_domain_lower = Dict(var.ID => var.index_domain_lower for var in values(instance.variables))
-        index_domain = Dict(var.ID => var.index_domain for var in values(instance.variables))
-        if backtrack(instance, init_time, maxTime)[1]
+        _index_domain_lower = Dict(var.ID => var.index_domain_lower for var in values(instance.variables))
+        _index_domain = Dict(var.ID => var.index_domain for var in values(instance.variables))
+        #_domain = Dict(var.ID => var.domain for var in values(instance.variables))
+
+        undefined_var.value = current_value
+        #= undefined_var.index_domain = idx_current
+        undefined_var.index_domain_lower = idx_current =#
+        if backtrack(instance, init_time, maxTime, depth+1, affectedVars*undefined_var.ID*"_")[1]
             return true
         end
         # restore the virtual domain
         for var in values(instance.variables)
-            var.index_domain = index_domain[var.ID]
-            var.index_domain_lower = index_domain_lower[var.ID]
+            var.index_domain_lower = _index_domain_lower[var.ID]
+            var.index_domain = _index_domain[var.ID]
+            #var.domain = _domain[var.ID]
         end 
-
-        # restore the undef value of the variable if there is not a consistent value
-        undefined_var.value = undef
+        idx_current += 1
     end
+
+    #= if depth >= 13
+        println("")
+        for var in values(instance.variables)
+            println(string(var)*": "*string(var.value))
+        end
+    end =#
+
+    undefined_var.value = undef
 
     return false
 end
 
 ### ARC-CONSISTENCY ALGORTHMS ###
 
-function directional_arcconsistency(instance::Problem, filterFirst=false)
+function directional_arcconsistency(instance::Problem, filterFirst=false, arc_consistency=true, forward_checking=true)
     """
         A lazy version of the initAC4 algorithm with forward checking.
 
@@ -105,7 +123,7 @@ function directional_arcconsistency(instance::Problem, filterFirst=false)
     list_vars = collect(values(instance.variables))
     list_constraints = values(instance.constraints)
     # count(x,y,b) := for two variables x,y, it counts the number of values of x in D_x that are consistent with <y,b>
-    count = Dict{Tuple{Integer, Integer}, Dict{Float64, Integer}}()
+    count = Dict{Tuple{Integer, Integer}, Dict{Any, Integer}}()     # TODO: change Any type by something like: Union{Float64, <:Tuple}
     idx_var = Dict(list_vars[i].ID => i for i in 1:num_vars)
     
     for constr in list_constraints
@@ -137,24 +155,17 @@ function directional_arcconsistency(instance::Problem, filterFirst=false)
         
         idx_val_j = idx_j_min           # keep track of the index of the value of j in its domain
         for val_j in var_j.domain[idx_j_min:idx_j_max]
-            if val_i == undef
-                # forward checking : we remove all the val_j if (var_i,var_j) not in constr.feasible_points
+            if val_i == undef && arc_consistency
                 for val_i in var_i.domain[idx_i_min:idx_i_max]
-                      
+                    # point = (val_1, val_2) in the order they appear in the constraint
                     if filterFirst
                         point = (val_j, val_i)
                     else
                         point = (val_i, val_j)
                     end
 
-                    #inTheRange = point >= constr.min_feasible_point || point <= constr.max_feasible_point      # a faster way to check if the point is a feasible point
-                    inTheRange = true
-                    if inTheRange && point in constr.feasible_points
-
-                        if val_j in keys(count[(idx_var[var_i.ID], idx_var[var_j.ID])])
-                            # increase the value associated to the key val_j
-                            count[(idx_var[var_i.ID], idx_var[var_j.ID])][val_j] += 1
-                        else
+                    if point in constr.feasible_points
+                        if !(val_j in keys(count[(idx_var[var_i.ID], idx_var[var_j.ID])]))
                             # add the val_j key to the dictionary makes val_j a consistent value for var_j
                             count[(idx_var[var_i.ID], idx_var[var_j.ID])][val_j] = 1
                             break
@@ -173,29 +184,29 @@ function directional_arcconsistency(instance::Problem, filterFirst=false)
                     var_j.domain[idx_j_max], var_j.domain[idx_val_j] = var_j.domain[idx_val_j], var_j.domain[idx_j_max]
                     var_j.index_domain = var_j.index_domain - 1
                 end
-                idx_val_j += 1
+                
             else
-
-                if filterFirst
-                    point = (val_j, val_i)
-                else
-                    point = (val_i, val_j)
+                if forward_checking
+                    ## forward checking : for val_i != undef, we remove all the val_j if (var_i,var_j) not in constr.feasible_points
+                    # point = (val_1, val_2) in the order they appear in the constraint
+                    if filterFirst
+                        point = (val_j, val_i)
+                    else
+                        point = (val_i, val_j)
+                    end
+                    
+                    # if val_j is not consistent, we remove it from the domain
+                    if !(point in constr.feasible_points)
+                        var_j.domain[idx_j_max], var_j.domain[idx_val_j] = var_j.domain[idx_val_j], var_j.domain[idx_j_max]
+                        #var_j.index_domain = var_j.index_domain - 1
+                    end
                 end
-
-                # if val_j is not consistent, we remove it from the domain
-                #inTheRange = point >= constr.min_feasible_point || point <= constr.max_feasible_point      # a faster way to check if the point is a feasible point
-                inTheRange = true
-                if !inTheRange || !((val_i, val_j) in constr.feasible_points)
-                    var_j.domain[idx_j_max], var_j.domain[idx_val_j] = var_j.domain[idx_val_j], var_j.domain[idx_j_max]
-                    var_j.index_domain = var_j.index_domain - 1
-                end
-                idx_val_j += 1
             end
+            idx_val_j += 1
         end
 
         # the problem is inconsistent (return true) if the virtual domain of var_j is empty
         if var_j.index_domain == 0 || var_j.index_domain < var_j.index_domain_lower
-            #println("The variable ", var.ID, " is inconsistent: index_domain_u=", var.index_domain, ", index_domain_l=", var.index_domain_lower)
             return true
         end
     end

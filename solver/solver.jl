@@ -74,8 +74,6 @@ module Solver
 
         obj_values = instance.objective.domain
         
-
-        
         if instance.sense == PMaximize
             right_idx = 1
             left_idx = length(obj_values) 
@@ -88,20 +86,25 @@ module Solver
         ## estimate middle_idx by the dichotomy method ##
         resolveOk = false
         right_idx_resolveOk = false     # true if the solution associated to the right_idx is ok
-            left_idx_resolveOk = false      # true if the solution associated to the left_idx is ok
-            instance_copy = deepcopy(instance) 
-            while true
+        left_idx_resolveOk = false      # true if the solution associated to the left_idx is ok
+        instance_copy = deepcopy(instance) 
+        
+        while true
             
             # backtrack on a copy of the instance
-            copyFromTo(instance, instance_copy)
+            #copyIndexDomain(instance, instance_copy)               # reset index_domain for each variable
             instance_copy.objective.value = obj_values[middle_idx]
+            
             instance_copy.objective <= obj_values[middle_idx]            # change the virtual domain of the objective variable
             makeFeasible(instance_copy)                                  # reset var variables; TODO: to improve using inverse backtracking
+            test_index_domain(instance_copy)
             resolveOk = actualSolveCSP(instance_copy, init_time, maxTime)
-            
+           
+
+
             delta_time = time() - init_time
             if resolveOk
-                copyFromTo(instance_copy, instance)
+                copySolutionValues(instance_copy, instance)
                 println("resolveOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time)
                 right_idx_resolveOk = true
                 right_idx = middle_idx
@@ -178,14 +181,58 @@ module Solver
         end
     end
 
-    function copyFromTo(instance_copy::Problem, instance::Problem)
+    function copySolutionValues(instance_from::Problem, instance_to::Problem)
         """
+            Backup of the best results.
             Parameters
-                - instance_copy: a deepcopy of instance.
-                - instance
+                - instance_from: source of the values.
+                - instance_to: destination of the values.
         """
-        for var in values(instance_copy.variables)
-            instance.variables[var.ID].value = var.value
+        for var in values(instance_from.variables)
+            instance_to.variables[var.ID].value = var.value
         end
+    end
+
+    function copyIndexDomain(instance_from::Problem, instance_to::Problem)
+        """
+            Backup of the original index_domain.
+            Parameters
+                - instance_from: source of the values.
+                - instance_to: destination of the values.
+        """
+        for var in values(instance_from.variables)
+            instance_to.variables[var.ID].index_domain = var.index_domain
+            instance_to.variables[var.ID].index_domain_lower = var.index_domain_lower
+        end
+    end
+
+    function test_index_domain(instance_copy::Problem)
+        """
+            Shows the min and max index_domain.
+        """
+        
+        ##
+        max_index_domain = 0
+        min_index_domain = Inf
+        for var in values(instance_copy.variables)
+            if var.index_domain > max_index_domain
+                max_index_domain = var.index_domain
+            end
+            if var.index_domain < min_index_domain
+                min_index_domain = var.index_domain
+            end
+        end
+
+        ids_max = Dict()
+        for var in values(instance_copy.variables)
+            if !(var.index_domain in keys(ids_max))
+                ids_max[var.index_domain] = 1
+            else
+                ids_max[var.index_domain] += 1
+            end
+        end
+
+        println("min_index_domain: ", min_index_domain, ", max_index_domain: ", max_index_domain, ", ids_max: ", ids_max)
+        ##
     end
 end
