@@ -1,6 +1,6 @@
 
 using ..Instance: Problem, Variable, getVariable
-
+using ..Solver: AC4
 
 function consistant(instance::Problem, var_names::Array, k::Int, i::Int, a::Real)
     # check that all constraints are ok with the affectation
@@ -88,7 +88,12 @@ function selectValue(instance::Problem, var_names::Array,var::Variable, i::Int, 
 end
 
 
-function backjumping(instance::Problem)
+function backjumping(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf, depth=0)
+
+    if AC4(instance)
+        return false
+    end
+
     n = length(instance.variables)
     var_names = collect(keys(instance.variables)) 
     # TODO: sort var_names so that we go through the list in a better order
@@ -97,6 +102,12 @@ function backjumping(instance::Problem)
     i = 1
     latest = 0
     while i > 0 && i <= n
+
+        # check if the delta_time <= maxTime in the solver
+        if time() - init_time > maxTime
+            return false
+        end
+
         var = instance.variables[var_names[i]]
         if i != latest
             var.index_domain = length(var.domain)
