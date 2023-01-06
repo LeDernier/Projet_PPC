@@ -81,6 +81,7 @@ module Solver
             right_idx = length(obj_values)
             left_idx = 1
         end
+
         middle_idx = right_idx
 
         ## estimate middle_idx by the dichotomy method ##
@@ -93,19 +94,20 @@ module Solver
             
             # backtrack on a copy of the instance
             #copyIndexDomain(instance, instance_copy)               # reset index_domain for each variable
-            instance_copy.objective.value = obj_values[middle_idx]
+            #instance_copy.objective.value = obj_values[middle_idx]
+            instance_copy.objective.index_domain = middle_idx
+            instance_copy.objective.index_domain_lower = middle_idx
             
-            instance_copy.objective <= obj_values[middle_idx]            # change the virtual domain of the objective variable
+            #instance_copy.objective <= obj_values[middle_idx]            # change the virtual domain of the objective variable
             makeFeasible(instance_copy)                                  # reset var variables; TODO: to improve using inverse backtracking
             test_index_domain(instance_copy)
+
             resolveOk = actualSolveCSP(instance_copy, init_time, maxTime)
            
-
-
             delta_time = time() - init_time
             if resolveOk
                 copySolutionValues(instance_copy, instance)
-                println("resolveOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time)
+                println("resolveOk with middle_idx: ", middle_idx, ", value: ", obj_values[middle_idx], ", delta_time: ", delta_time)
                 right_idx_resolveOk = true
                 right_idx = middle_idx
                 middle_idx=floor(Integer, (left_idx+middle_idx)/2)
@@ -146,12 +148,12 @@ module Solver
         end
 
         ## get the instance associated to middle_idx if delta_time < maxTime##
-        if instance.objective.value != obj_values[middle_idx] && time() - init_time < maxTime
+        #= if instance.objective.value != obj_values[middle_idx] && time() - init_time < maxTime
             println("objective_val: ", instance.objective.value, ", obj_values[middle_idx]: ", obj_values[middle_idx])
             instance.objective.value = obj_values[middle_idx]
             instance.objective <= obj_values[middle_idx]
             resolveOk = actualSolveCSP(instance, init_time, maxTime)
-        end
+        end =#
 
         if resolveOk
             statusSol = PSolutionOptimal
@@ -175,9 +177,7 @@ module Solver
             All the values of the the non-objective variables are reset. 
         """
         for var in values(instance.variables)
-            if var.ID != instance.objective.ID
-                var.value = undef
-            end
+            var.value = undef
         end
     end
 
@@ -232,7 +232,7 @@ module Solver
             end
         end
 
-        println("min_index_domain: ", min_index_domain, ", max_index_domain: ", max_index_domain, ", ids_max: ", ids_max)
+        #println("min_index_domain: ", min_index_domain, ", max_index_domain: ", max_index_domain, ", ids_max: ", ids_max)
         ##
     end
 end

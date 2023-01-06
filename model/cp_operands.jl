@@ -1,6 +1,6 @@
 module BOperands
 
-    export Variable, Variables, BConstraint, num_bConstraints, num_dVariables
+    export Variable, Variables, BConstraint, num_bConstraints, num_dVariables, _varIDType, _varValueType
 
     ### CONSTANTS ###
     const num_bConstraints = Ref(0)

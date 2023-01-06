@@ -15,8 +15,9 @@ function colorability_cp(edges::Vector{Tuple}, num_vertices::Integer, chrom_numb
     ## problem instance
     # create the variables
     color = Vector{Variable}(undef, num_vertices)          # c_i := color of the i-th 
+    up_bound_colors = last(chrom_number_u.domain)
     for v in 1:num_vertices
-        color[v] = Variable("color_vertex_"*string(v), collect(1:chrom_number_u.value))
+        color[v] = Variable("color_vertex_"*string(v), collect(1:up_bound_colors))
     end
 
     # create the instance

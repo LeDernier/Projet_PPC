@@ -5,11 +5,11 @@ module Instance
     include("lp_operands.jl")
     include("operations.jl")
 
-    import .BOperands: Variable, BConstraint, num_dVariables
+    import .BOperands: Variable, BConstraint, num_dVariables, _varIDType, _varValueType
     using .LpOperands: LpAffineExpression, LpConstraint, +, -, *, ==, <=, >=, !=, value, _varMapType
     
 
-    export Variable, BConstraint,
+    export Variable, BConstraint, _varIDType, _varValueType,
     +, -, *, ==, <=, >=, !=,
     Problem, addVariables, getVariable, addConstraints, addConstraint, addObjective, nbConstraints, nbVariables, makeExplicitBinary
     
@@ -21,7 +21,7 @@ module Instance
             Instance of a two-variable problem. It can be a constraint satisfaction problem 
             or an optimization problem.
         """
-        variables::Dict{Union{String,Int,Tuple}, Variable}
+        variables::Dict{_varIDType, Variable}
         constraints::Dict{Union{String,Int}, BConstraint}
         objective::Union{Variable, Nothing}   # optional
         sense::Integer                                  # 0: satisfaction, 1: minimization, -1: maximization
@@ -149,8 +149,11 @@ module Instance
         println("\nVariables: "*string(numV))
         if numV <= maxVarsToShow
             for var in values(instance.variables)
-                #println(string(var)*": "*string(var.value))
-                println(string(var)*": "*string(var.value), ", domain: ", var.domain)
+                println(string(var)*": "*string(var.value))
+                #println(string(var)*": "*string(var.value), ", domain: ", var.domain[var.index_domain_lower:var.index_domain])
+                #= i_min = var.index_domain_lower
+                i_max = var.index_domain
+                println(string(var)*": "*string(var.value), ", (i_min,i_max): (", i_min, ", ", i_max, ")") =#
             end
         end
 
@@ -314,8 +317,17 @@ module Instance
             sense: 1 Minimize (by default), -1 Maximize
         """
         if sense == 1 || sense == -1
+            # sort the domain in descending order if minimization 
+            #= if sense == 1 && last(objective.domain) > first(objective.domain)
+                objective.domain = sort(objective.domain, rev=true)
+            else
+                # sort the domain in ascending order if maximization
+                if sense == -1 && last(objective.domain) < first(objective.domain)
+                    objective.domain = sort(objective.domain)
+                end
+            end =#
             instance.objective = objective
-            instance.sense = sense
+            instance.sense = sense 
         end
 
         addVariables(instance, [objective])        
