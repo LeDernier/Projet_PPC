@@ -13,7 +13,7 @@ module TestInterval
 
     println("\nLet's test the backtrack algorithm on the interval series")
     
-    instance = allIntervalSeriesBinary(6)
+    instance = allIntervalSeriesBinary(7)
 
     print(instance)
     start = Dates.now()
