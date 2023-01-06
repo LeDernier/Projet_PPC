@@ -11,7 +11,7 @@ module Solver
     include("backtrack.jl")
     include("backjumping.jl")
 
-    export backjumping, backtrack, solve
+    export backjumping, backtrack, solve, AC4
 
     function solve(instance::Problem, maxTime::Real=Inf)
         """
