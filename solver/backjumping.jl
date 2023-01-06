@@ -88,14 +88,19 @@ function selectValue(instance::Problem, var_names::Array,var::Variable, i::Int, 
 end
 
 
-function backjumping(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf, depth=0)
+function backjumping(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf,
+    applyMACR=true, applyFC=true, applyMAC=false)
+
+    # keep track of the virtual domain
+    _index_domain_lower = Dict(var.ID => var.index_domain_lower for var in values(instance.variables))
+    _index_domain = Dict(var.ID => var.index_domain for var in values(instance.variables))
 
     if AC4(instance)
         return false
     end
 
     n = length(instance.variables)
-    var_names = collect(keys(instance.variables)) 
+    var_names = collect(keys(instance.variables))
     # TODO: sort var_names so that we go through the list in a better order
     # for instance, sort in increasing domain size
 
@@ -110,7 +115,7 @@ function backjumping(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf, 
 
         var = instance.variables[var_names[i]]
         if i != latest
-            var.index_domain = length(var.domain)
+            var.index_domain = _index_domain[var.ID]
         end
         val, latest = selectValue(instance, var_names, var, i, latest)
         if val == undef
@@ -120,6 +125,12 @@ function backjumping(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf, 
             i += 1
             latest = 0
         end
+    end
+
+    # restore the virtual domain
+    for var in values(instance.variables)
+        var.index_domain_lower = _index_domain_lower[var.ID]
+        var.index_domain = _index_domain[var.ID]
     end
 
     if i == 0

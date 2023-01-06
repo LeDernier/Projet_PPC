@@ -13,11 +13,11 @@ module TestInterval
 
     println("\nLet's test the backtrack algorithm on the interval series")
     
-    instance = allIntervalSeriesBinary(8)
+    instance = allIntervalSeriesBinary(5)
 
     print(instance)
     start = Dates.now()
-    found_sol = backjumping(instance)
+    found_sol = solve(instance, Inf, false, true, false, false)         # applyBacktrack, applyMACR, applyFC, applyMAC
     #found_sol, sol_time = solve(instance)
     time_elapsed = Dates.now() - start
     println("found a solution? ", found_sol)

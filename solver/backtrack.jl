@@ -1,6 +1,7 @@
 using ..Instance: Problem, getVariable, _varIDType, _varValueType
 
-function backtrack(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf, depth=0)::Bool
+function backtrack(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf, depth=0,
+    applyMACR=true, applyFC=true, applyMAC=false)::Bool
     #= var = instance.objective
     i_min = var.index_domain_lower
     i_max = var.index_domain
@@ -8,19 +9,24 @@ function backtrack(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf, de
     println("virtual_domain: ", var.domain[i_min:i_max]) =#
 
     ## MAC at the root
-    isInconsistent = AC4(instance)
-    if isInconsistent
-        return false
+    if applyMACR
+        isInconsistent = AC4(instance)
+        if isInconsistent
+            return false
+        end
     end
 
     ## actual backtrack
     vars_ids = collect(keys(instance.variables))
+    #sort!(var_names, by = x -> instance.variables[x].index_domain - instance.variables[x].index_domain_lower)
     index_undefined_var = 1
-    return actualBacktrack(instance, vars_ids, index_undefined_var, init_time, maxTime, depth)
+    return actualBacktrack(instance, vars_ids, index_undefined_var, init_time,
+                            maxTime, depth, applyFC, applyMAC)
 end
 
 function actualBacktrack(instance::Problem, vars_ids::Vector{_varIDType}, index_undefined_var::Integer,
-    init_time::Real=0.0, maxTime::Real=Inf, depth::Integer=0)::Bool
+    init_time::Real=0.0, maxTime::Real=Inf, depth::Integer=0, 
+    applyFC::Bool=true, applyMAC::Bool=false)::Bool
 
     # check if the delta_time <= maxTime in the solver
     if time() - init_time > maxTime
@@ -39,10 +45,17 @@ function actualBacktrack(instance::Problem, vars_ids::Vector{_varIDType}, index_
     end =#
 
     # MAC
-    if depth > 0
+    if applyFC && depth > 0
         isInconsistent = forward_checking(instance, vars_ids, index_undefined_var, true)
         if isInconsistent
             return false
+        end
+    else
+        if applyMAC
+            isInconsistent = AC4(instance)
+            if isInconsistent
+                return false
+            end
         end
     end
    

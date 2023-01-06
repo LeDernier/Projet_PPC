@@ -13,11 +13,21 @@ module Solver
 
     export backjumping, backtrack, solve, AC4
 
-    function solve(instance::Problem, maxTime::Real=Inf)
+    function solve(instance::Problem, maxTime::Real=Inf, 
+                    applyBacktrack::Bool=true, applyMACR::Bool=true, applyFC::Bool=true, 
+                    applyMAC::Bool=false)
+
         """
         Parameters
             - instance: problem instance.
             - maxTime: maximum time given to the solver to find the solution.
+            - applyBacktrack: if true, backtrack is used. If false, backjumping is used.
+            - applyMAC: Maintain-Arc-Consistency. If true, AC4 is applied at each node.
+                If false, AC4 is not applied.
+            - applyMACR: Maintain-Arc-Consistency at the root. If true, AC4 is applied only
+                at the root node. If false, AC4 is not applied at the root node.
+            - applyFC: if true, Forward-Checking is applied. If false, Forward-Checking is
+                not applied.
         """
         resolveOk = false
         solutionStatus = PSolutionNoSolutionFound
@@ -33,14 +43,14 @@ module Solver
     
         ## resolution phase
         if instance.sense == 0
-            resolveOk = actualSolveCSP(instance, init_time, maxTime)
+            resolveOk = actualSolveCSP(instance, init_time, maxTime, applyBacktrack, applyMACR, applyFC, applyMAC)
             if resolveOk
                 solutionStatus = PSolutionSolutionFound
             else
                 solutionStatus = PSolutionInfeasible
             end
         else
-            resolveOk, solutionStatus = actualSolveCOP(instance, init_time, maxTime) 
+            resolveOk, solutionStatus = actualSolveCOP(instance, init_time, maxTime, applyBacktrack, applyMACR, applyFC, applyMAC) 
         end
         
     
@@ -50,7 +60,8 @@ module Solver
         return status, delta_time
     end
 
-    function actualSolveCSP(instance::Problem, init_time::Real, maxTime::Real)
+    function actualSolveCSP(instance::Problem, init_time::Real, maxTime::Real, applyBacktrack::Bool,
+        applyMACR::Bool, applyFC::Bool, applyMAC::Bool)
         """
             Solve an constraint satisfaction problem.
             Parameters
@@ -58,10 +69,16 @@ module Solver
             - init_time: initial time.
             - maxTime: maximum time given to the solver to find the solution.
         """
-        return backtrack(instance, init_time, maxTime)
+        if applyBacktrack
+            return backtrack(instance, init_time, maxTime, 0, applyMACR, applyFC, applyMAC)
+        else
+            return backjumping(instance, init_time, maxTime, applyMACR, applyFC, applyMAC)
+        end
+        
     end
 
-    function actualSolveCOP(instance::Problem, init_time::Real, maxTime::Real)
+    function actualSolveCOP(instance::Problem, init_time::Real, maxTime::Real, applyBacktrack::Bool,
+        applyMACR::Bool, applyFC::Bool, applyMAC::Bool)
         """
             Solve an constraint optimization problem. The objective should always be a Variable.
 
@@ -97,13 +114,15 @@ module Solver
             #instance_copy.objective.value = obj_values[middle_idx]
             instance_copy.objective.index_domain = middle_idx
             instance_copy.objective.index_domain_lower = middle_idx
+            #instance_copy.objective.domain = instance.objective.domain
             
             #instance_copy.objective <= obj_values[middle_idx]            # change the virtual domain of the objective variable
             makeFeasible(instance_copy)                                  # reset var variables; TODO: to improve using inverse backtracking
             test_index_domain(instance_copy)
 
-            resolveOk = actualSolveCSP(instance_copy, init_time, maxTime)
-           
+            resolveOk = actualSolveCSP(instance_copy, init_time, maxTime, applyBacktrack, applyMACR, applyFC, applyMAC)
+            println("obj_value after actualSolveCSP: ", instance_copy.objective.value)
+
             delta_time = time() - init_time
             if resolveOk
                 copySolutionValues(instance_copy, instance)
@@ -188,6 +207,7 @@ module Solver
                 - instance_from: source of the values.
                 - instance_to: destination of the values.
         """
+        println("copying values for the case: ", instance_from.objective.value)
         for var in values(instance_from.variables)
             instance_to.variables[var.ID].value = var.value
         end
