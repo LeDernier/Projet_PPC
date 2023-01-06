@@ -17,6 +17,7 @@ module BOperands
         index_domain::Integer                                               # maximal index to search in the domain
         index_domain_lower::Integer                                         # minimal index to search in the domain
         primal_vars_ids::Union{UndefInitializer, <:Tuple}       # ids of primal variables/variables in the constraint (if a dual variable)
+        nb_constraints::Int
 
         function Variable(ID::_varIDType , domain::Vector{<:_varValueType}, 
                         value::_varValueType=undef)
@@ -25,7 +26,7 @@ module BOperands
             """
             #domain = [convert(Float64, val) for val in domain]
             index_domain = init_index_domain(domain)
-            return new(ID, domain, value, index_domain, 1, undef)
+            return new(ID, domain, value, index_domain, 1, undef, 0)
         end
     end
 

@@ -95,9 +95,23 @@ function backjumping(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf, 
     end
 
     n = length(instance.variables)
-    var_names = collect(keys(instance.variables)) 
-    # TODO: sort var_names so that we go through the list in a better order
-    # for instance, sort in increasing domain size
+    var_names = collect(keys(instance.variables))
+
+    # sort var by increasing domain size
+    # sort!(var_names, by = x -> instance.variables[x].index_domain - instance.variables[x].index_domain_lower)
+    
+    # sort var by decreasing domain size
+    # sort!(var_names, rev = true, by = x -> instance.variables[x].index_domain - instance.variables[x].index_domain_lower)
+    
+    # sort var by nb of constraints
+    # sort!(var_names, by = x -> instance.variables[x].nb_constraints)
+
+    println("variable order: ", var_names)
+    for var_name in var_names
+        dom_size = instance.variables[var_name].index_domain - instance.variables[var_name].index_domain_lower
+        nb_constraints = instance.variables[var_name].nb_constraints
+        println("var ", var_name, " has a domain size of ", dom_size, " and ", nb_constraints, " constraints.")
+    end
 
     i = 1
     latest = 0

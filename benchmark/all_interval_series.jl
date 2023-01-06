@@ -33,15 +33,15 @@ function addIntervalConstraints(n::Int, instance::Problem, v_variables::Vector{V
 
         xv_feasible_points = [(x÷100, x) for x in x_var.domain]
         xv_constraint = BConstraint("bC_xv $i", [v_var.ID, x_var.ID], xv_feasible_points)
-        instance.constraints["bC_xv $i"] = xv_constraint
+        addConstraint(instance, xv_constraint)
 
         xsi_feasible_points = [((x%100)÷10, x) for x in x_var.domain]
         xsi_constraint = BConstraint("bC_xsi $i", [s_var_i.ID, x_var.ID], xsi_feasible_points)
-        instance.constraints["bC_xsi $i"] = xsi_constraint
+        addConstraint(instance, xsi_constraint)
 
         xsj_feasible_points = [((x%100)%10, x) for x in x_var.domain]
         xsj_constraint = BConstraint("bC_xsj $i", [s_var_j.ID, x_var.ID], xsj_feasible_points)
-        instance.constraints["bC_xsj $i"] = xsj_constraint
+        addConstraint(instance, xsj_constraint)
     end
 
 end

@@ -13,7 +13,7 @@ module TestSudoku
     ## Sudoku ##
 
     println("\nLet's test the backtrack algorithm on the sudoku")
-    preAffectations = [ 
+    #= preAffectations = [ 
     [1 1 8];
     [1 3 4];
     [1 7 2];
@@ -45,17 +45,33 @@ module TestSudoku
     [9 9 1]]
     dim = 3
 
-    #= preAffectations = [
+    preAffectations = [
         [1 1 1];
         [3 1 2];
-    ] =#
-    dim = 3                                       # TODO : improve the performance for dim=3
+    ] 
+    dim = 3   =#                               # TODO : improve the performance for dim=3
+
+    preAffectations = [
+        [1 1 1];
+        [3 1 4];
+        [1 3 3];
+        [3 3 2];
+    ] 
+    dim = 2
+
     instance4 = sudoku2D(preAffectations, dim)
 
     print(instance4)
     println("\nLet's solve the sudoku problem.")
-    found_sol = solve(instance4)
+    
+    # found_sol = solve(instance4)
+
+    
+    start = time() # in seconds
+    found_sol = backjumping(instance4, start, 60)
+    time_elapsed = time() - start
     println("found a solution? ", found_sol)
+    println("time elapsed:", time_elapsed)
 
     for var in values(instance4.variables)
         println(string(var)*": "*string(var.value))

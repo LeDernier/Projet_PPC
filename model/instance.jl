@@ -128,6 +128,10 @@ module Instance
                 else
                     # add the constraint if there are no constraint on the variables x,y
                     instance.constraints[constraint.ID] = constraint
+                    var1 = instance.variables[constraint.varsIDs[1]]
+                    var1.nb_constraints += 1
+                    var2 = instance.variables[constraint.varsIDs[2]]
+                    var2.nb_constraints += 1
                 end
             end
         end
