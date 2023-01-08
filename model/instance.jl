@@ -25,7 +25,7 @@ module Instance
         constraints::Dict{Union{String,Int}, BConstraint}
         objective::Union{Variable, Nothing}   # optional
         sense::Integer                                  # 0: satisfaction, 1: minimization, -1: maximization
-        variables_instantiated::Vector{Variable}
+        order_variables::Vector{_varIDType}                    # order of the variables when solving the problem
 
         function Problem()
             """
@@ -46,13 +46,14 @@ module Instance
                 Unconstraint constructor (the constraints can be added later).
             """
             vars = Dict(var.ID => var for var in variables)
+            order_variables = [var.ID for var in variables]
             constrs = Dict{Union{String,Int},BConstraint}()
             if isnothing(objective) || sense == 0
                 sense = 0
                 objective = nothing
             end
             sense = sign(sense)
-            return new(vars, constrs, objective, sense, [])
+            return new(vars, constrs, objective, sense, order_variables)
         end
 
         function Problem(variables::AbstractArray{Variable}, 
@@ -63,6 +64,7 @@ module Instance
                 Standard constructor.
             """
             vars = Dict(var.ID => var for var in variables)
+            order_variables = [var.ID for var in variables]
             constrs = Dict(constr.ID => constr for constr in constraints)
             
             if isnothing(objective) || sense == 0
@@ -77,7 +79,7 @@ module Instance
             end
 
             sense = sign(sense)
-            return new(vars, constrs, objective, sense, [])
+            return new(vars, constrs, objective, sense, order_variables)
         end
     end
 
@@ -101,6 +103,7 @@ module Instance
                 @warn "A variable has been replaced : same ID."
             end 
             instance.variables[variable.ID] = variable
+            push!(instance.order_variables, variable.ID)
         end
     end
 

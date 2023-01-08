@@ -19,7 +19,7 @@ module TestQueens
 
     println("\nLet's solve the "*string(N)*"-queens problem")
 
-    status, sol_time, sizeTree = solve(fourQueensLP, Inf, true, false, true, false)         # applyBacktrack, applyMACR, applyFC, applyMAC
+    status, sol_time, sizeTree = solve(fourQueensLP, Inf, true, false, false, true)         # applyBacktrack, applyMACR, applyFC, applyMAC
     println("status: ", status)
     println("time: ", sol_time)
     println("size of the tree: ", sizeTree)

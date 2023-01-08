@@ -20,7 +20,11 @@ function sudoku2D(preAffectations::AbstractArray, dim::Integer=3)
     end
 
     ## create the instance
-    instance = Problem(grid)
+    variables = Vector{Variable}()
+    for var in grid
+        push!(variables, var)
+    end
+    instance = Problem(variables)
 
     ## add the constraints
     # pre-assignation

@@ -96,7 +96,7 @@ function backjumping(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf,
 
     ## sort the variables
     n = length(instance.variables)
-    var_names = collect(keys(instance.variables))
+    var_names = instance.order_variables
     if sortVariablesBy == "size_domain"
         sort!(var_names, by = x -> size_domain(instance.variables[x]))
     else

@@ -1,7 +1,7 @@
 using ..Instance: Problem, getVariable, _varIDType, _varValueType, size_domain
 
 function backtrack(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf,
-    applyMACR=true, applyFC=true, applyMAC=false, sortVariablesBy::String="size_domain")
+    applyMACR=false, applyFC=false, applyMAC=false, sortVariablesBy::String="size_domain")
     """
         Parameters
             - instance:
@@ -27,7 +27,7 @@ function backtrack(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf,
     end
 
     ## sort the variables
-    vars_ids = collect(keys(instance.variables))
+    vars_ids = instance.order_variables
     if sortVariablesBy == "size_domain"
         sort!(vars_ids, by = x -> size_domain(instance.variables[x]))
     else
@@ -45,11 +45,11 @@ end
 
 function actualBacktrack(instance::Problem, vars_ids::Vector{_varIDType}, index_undefined_var::Integer,
     init_time::Real=0.0, maxTime::Real=Inf, depthTree::Integer=0, sizeTree::Integer=0,
-    applyFC::Bool=true, applyMAC::Bool=false)
+    applyFC::Bool=false, applyMAC::Bool=false)
 
     # check if the delta_time <= maxTime in the solver
     if time() - init_time > maxTime
-        return false
+        return false, sizeTree
     end
 
     # MAC
@@ -108,6 +108,7 @@ function actualBacktrack(instance::Problem, vars_ids::Vector{_varIDType}, index_
     i_max = undefined_var.index_domain
     idx_current = i_min
 
+    #for current_value in undefined_var.domain[i_min:i_max]
     for current_value in reverse(undefined_var.domain[i_min:i_max])         # reversed to have the same order of values as in the backjumping algorithm
 
         undefined_var.value = current_value

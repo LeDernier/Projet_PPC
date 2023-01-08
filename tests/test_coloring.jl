@@ -10,7 +10,7 @@ module TestColoring
     using ..Benchmark: queens_cp, colorability_cp, getEdges, getMaxColors
     using ..Wrapper: all_different
 
-    path = "..\\..\\External instances\\instances_coloring\\random-10.col"
+    path = "..\\..\\External instances\\instances_coloring\\random-70.col"
     edges, num_vertices, num_edges = getEdges(path)
     println("num_vertices: ", num_vertices, ", num_edges: ", num_edges)
     #max_colors_u = getMaxColors(edges, num_vertices)
@@ -25,7 +25,7 @@ module TestColoring
 
     println("\nLet's test the dichotomy algorithm on the coloring problem")
     
-    status, sol_time, sizeTree = solve(instance, Inf, true, true, true, false)         # applyBacktrack, applyMACR, applyFC, applyMAC
+    status, sol_time, sizeTree = solve(instance, Inf, true, true, false, false)         # applyBacktrack, applyMACR, applyFC, applyMAC
     println("status: ", status)
     println("time: ", sol_time)
     println("size of the tree: ", sizeTree)

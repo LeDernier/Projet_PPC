@@ -54,7 +54,7 @@ module TestSudoku
 
     print(instance4)
     println("\nLet's solve the sudoku problem.")
-    found_sol = solve(instance4)
+    found_sol = solve(instance4, 600, false, true, false, false, "size_domain")
     println("found a solution? ", found_sol)
 
     for var in values(instance4.variables)

@@ -16,7 +16,7 @@ module Solver
 
     function solve(instance::Problem, maxTime::Real=Inf, 
                     applyBacktrack::Bool=true, applyMACR::Bool=false, applyFC::Bool=false, 
-                    applyMAC::Bool=false)
+                    applyMAC::Bool=false, sortVariablesBy::String="size_domain")
 
         """
         Parameters
@@ -41,8 +41,6 @@ module Solver
         if num_constr_removed > 0
             println("Number of constraints removed by intersection: ", num_constr_removed, "/",num_constr_before)
         end
-        
-        sortVariablesBy = "size_domain"
 
         ## resolution phase
         if instance.sense == 0
