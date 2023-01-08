@@ -25,7 +25,7 @@ module TestColoring
 
     println("\nLet's test the dichotomy algorithm on the coloring problem")
     
-    status, sol_time, sizeTree = solve(instance, Inf, true, false, true, false)         # applyBacktrack, applyMACR, applyFC, applyMAC
+    status, sol_time, sizeTree = solve(instance, Inf, true, true, true, false)         # applyBacktrack, applyMACR, applyFC, applyMAC
     println("status: ", status)
     println("time: ", sol_time)
     println("size of the tree: ", sizeTree)

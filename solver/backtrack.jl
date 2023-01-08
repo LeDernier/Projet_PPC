@@ -15,6 +15,9 @@ function backtrack(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf,
                 which they appear. Any other keyword will leave the variables unsorted.
     """
 
+    depthTree = 0
+    sizeTree = 0
+
     ## MAC at the root
     if applyMACR
         isInconsistent = AC4(instance)
@@ -35,8 +38,6 @@ function backtrack(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf,
 
     ## call actual backtrack
     index_undefined_var = 1
-    depthTree = 0
-    sizeTree = 0
     isConsistent, sizeTree = actualBacktrack(instance, vars_ids, index_undefined_var, init_time,
     maxTime, depthTree, sizeTree, applyFC, applyMAC)
     return isConsistent, sizeTree

@@ -132,31 +132,31 @@ module Solver
             delta_time = time() - init_time
             if resolveOk
                 copySolutionValues(instance_copy, instance)
-                println("resolveOk with middle_idx: ", middle_idx, ", value: ", obj_values[middle_idx], ", delta_time: ", delta_time, ", sizeTree: ", sizeTree)
+                println("resolveOk with middle_idx: ", middle_idx, ", value: ", obj_values[middle_idx], ", delta_time: ", delta_time, ", sizeTree: ", _sizeTree)
                 right_idx_resolveOk = true
                 right_idx = middle_idx
                 middle_idx=floor(Integer, (left_idx+middle_idx)/2)
                 if middle_idx == left_idx
                     if left_idx_resolveOk
                         resolveOk = true
-                        println("last resolveOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time, ", sizeTree: ", sizeTree)
+                        println("last resolveOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time, ", sizeTree: ", _sizeTree)
                     else
-                        println("last resolveNotOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time, ", sizeTree: ", sizeTree)
+                        println("last resolveNotOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time, ", sizeTree: ", _sizeTree)
                     end
                     
                     break
                 end
             else
-                println("resolveNotOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time, ", sizeTree: ", sizeTree, ", sizeTree: ", sizeTree)
+                println("resolveNotOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time, ", sizeTree: ", _sizeTree)
                 left_idx_resolveOk = true
                 left_idx = middle_idx
                 middle_idx=ceil(Integer, (middle_idx+right_idx)/2)
                 if middle_idx == right_idx
                     if right_idx_resolveOk
                         resolveOk = true
-                        println("last resolveOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time, ", sizeTree: ", sizeTree)
+                        println("last resolveOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time, ", sizeTree: ", _sizeTree)
                     else
-                        println("last resolveNotOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time, ", sizeTree: ", sizeTree)
+                        println("last resolveNotOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time, ", sizeTree: ", _sizeTree)
                     end
                     
                     break
