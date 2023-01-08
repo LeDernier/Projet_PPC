@@ -19,12 +19,13 @@ module TestQueens
 
     println("\nLet's solve the "*string(N)*"-queens problem")
 
-    status, sol_time = solve(fourQueensLP)
+    status, sol_time, sizeTree = solve(fourQueensLP, Inf, true, false, true, false)         # applyBacktrack, applyMACR, applyFC, applyMAC
     println("status: ", status)
-    println("time: ", sol_time, "\n")
+    println("time: ", sol_time)
+    println("size of the tree: ", sizeTree)
 
-    for var in values(fourQueensLP.variables)
+    #= for var in values(fourQueensLP.variables)
         println(string(var)*": "*string(var.value))
-    end
+    end =#
 
 end

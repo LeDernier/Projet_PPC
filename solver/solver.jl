@@ -15,7 +15,7 @@ module Solver
     export backjumping, backtrack, solve, AC4, forward_checking
 
     function solve(instance::Problem, maxTime::Real=Inf, 
-                    applyBacktrack::Bool=true, applyMACR::Bool=true, applyFC::Bool=true, 
+                    applyBacktrack::Bool=true, applyMACR::Bool=false, applyFC::Bool=false, 
                     applyMAC::Bool=false)
 
         """
