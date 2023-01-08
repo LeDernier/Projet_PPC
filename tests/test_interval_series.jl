@@ -13,14 +13,14 @@ module TestInterval
 
     println("\nLet's test the backtrack algorithm on the interval series")
     
-    instance = allIntervalSeriesBinary(4)
+    instance = allIntervalSeriesBinary(5)
 
     #print(instance)
-    found_sol, solTime, sizeTree = solve(instance, Inf, true, false, false, false)         # applyBacktrack, applyMACR, applyFC, applyMAC
+    found_sol, solTime, sizeTree = solve(instance, Inf, true, false, true, false)         # applyBacktrack, applyMACR, applyFC, applyMAC
     #found_sol, sol_time = solve(instance)
     println("found a solution? ", found_sol)
-    println("time elapsed:", solTime)
-    println("size of the tree:", sizeTree)
+    println("time elapsed: ", solTime)
+    println("size of the tree: ", sizeTree)
 
     for var in values(instance.variables)
         println(string(var)*": "*string(var.value))

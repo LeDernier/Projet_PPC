@@ -52,10 +52,12 @@ function actualBacktrack(instance::Problem, vars_ids::Vector{_varIDType}, index_
     end
 
     # MAC
-    if applyFC && depthTree > 0
-        isInconsistent = forward_checking(instance, vars_ids, index_undefined_var, true)
-        if isInconsistent
-            return false, sizeTree
+    if applyFC
+        if depthTree > 0
+            isInconsistent = forward_checking(instance, vars_ids, index_undefined_var, true)
+            if isInconsistent
+                return false, sizeTree
+            end
         end
     else
         if applyMAC
@@ -110,7 +112,8 @@ function actualBacktrack(instance::Problem, vars_ids::Vector{_varIDType}, index_
         undefined_var.value = current_value
         #= undefined_var.index_domain = idx_current
         undefined_var.index_domain_lower = idx_current =#
-        isConsistent, sizeTree = actualBacktrack(instance, vars_ids, index_undefined_var + 1, init_time, maxTime, depthTree + 1, sizeTree + 1)
+        isConsistent, sizeTree = actualBacktrack(instance, vars_ids, index_undefined_var + 1, init_time, maxTime, 
+                                                depthTree + 1, sizeTree + 1, applyFC, applyMAC)
         if isConsistent
             return true, sizeTree
         end

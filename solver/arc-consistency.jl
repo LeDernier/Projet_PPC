@@ -29,7 +29,7 @@ for constr in list_constraints
             var_i = constr_vars[1]
             var_j = constr_vars[2]
         else
-            break
+            continue
         end
     end
 
