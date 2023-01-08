@@ -1,5 +1,5 @@
 
-using ..Instance: Problem, Variable, getVariable
+using ..Instance: Problem, Variable, getVariable, size_domain
 using ..Solver: AC4
 
 function consistant(instance::Problem, var_names::Array, k::Int, i::Int, a::Real)
@@ -61,7 +61,7 @@ function selectValue1(instance::Problem, var_names::Array, D::Vector, i::Int, la
 end
 
 
-function selectValue(instance::Problem, var_names::Array,var::Variable, i::Int, latest::Int)
+function selectValue(instance::Problem, var_names::Array,var::Variable, i::Int, latest::Int, sizeTree::Int)
     while var.index_domain > 0
         a = var.domain[var.index_domain]
         var.index_domain -= 1
@@ -75,34 +75,47 @@ function selectValue(instance::Problem, var_names::Array,var::Variable, i::Int, 
                 consist = false
             else
                 k += 1
+                sizeTree += 1
             end
         end
         if consist
-            return a, latest
+            return a, latest, sizeTree
         end
     end
     if latest == i
         latest -= 1
     end
-    return undef, latest
+    return undef, latest, sizeTree
 end
 
 
 function backjumping(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf,
-    applyMACR=true, applyFC=true, applyMAC=false)
+    applyMACR=true, applyFC=true, applyMAC=false, sortVariablesBy="size_domain")
+
+    sizeTree = 0
+
+    ## sort the variables
+    n = length(instance.variables)
+    var_names = collect(keys(instance.variables))
+    if sortVariablesBy == "size_domain"
+        sort!(var_names, by = x -> size_domain(instance.variables[x]))
+    else
+        if sortVariablesBy == "nb_constraints"
+            sort!(var_names, by = x -> instance.variables[x].nb_constraints)
+        end
+    end
+
+    ## MAC at the root
+    if applyMACR
+        isInconsistent = AC4(instance)
+        if isInconsistent
+            return false, sizeTree
+        end
+    end
 
     # keep track of the virtual domain
     _index_domain_lower = Dict(var.ID => var.index_domain_lower for var in values(instance.variables))
     _index_domain = Dict(var.ID => var.index_domain for var in values(instance.variables))
-
-    if AC4(instance)
-        return false
-    end
-
-    n = length(instance.variables)
-    var_names = collect(keys(instance.variables))
-    # TODO: sort var_names so that we go through the list in a better order
-    # for instance, sort in increasing domain size
 
     i = 1
     latest = 0
@@ -110,14 +123,14 @@ function backjumping(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf,
 
         # check if the delta_time <= maxTime in the solver
         if time() - init_time > maxTime
-            return false
+            return false, sizeTree
         end
 
         var = instance.variables[var_names[i]]
         if i != latest
             var.index_domain = _index_domain[var.ID]
         end
-        val, latest = selectValue(instance, var_names, var, i, latest)
+        val, latest, sizeTree = selectValue(instance, var_names, var, i, latest, sizeTree)
         if val == undef
             i = latest
         else
@@ -127,15 +140,15 @@ function backjumping(instance::Problem, init_time::Real=0.0, maxTime::Real=Inf,
         end
     end
 
-    # restore the virtual domain
+    # restore the virtual domain            # TODO : restore the virtual domain is really necessary ?
     for var in values(instance.variables)
         var.index_domain_lower = _index_domain_lower[var.ID]
         var.index_domain = _index_domain[var.ID]
     end
 
     if i == 0
-        return false # inconsistant
+        return false, sizeTree # inconsistant
     else
-        return true  # we found a solution
+        return true, sizeTree  # we found a solution
     end
 end

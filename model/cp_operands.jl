@@ -1,6 +1,7 @@
 module BOperands
 
-    export Variable, Variables, BConstraint, num_bConstraints, num_dVariables, _varIDType, _varValueType
+    export Variable, Variables, BConstraint, num_bConstraints, num_dVariables, 
+        _varIDType, _varValueType, size_domain
 
     ### CONSTANTS ###
     const num_bConstraints = Ref(0)
@@ -17,6 +18,7 @@ module BOperands
         index_domain::Integer                                               # maximal index to search in the domain
         index_domain_lower::Integer                                         # minimal index to search in the domain
         primal_vars_ids::Union{UndefInitializer, <:Tuple}       # ids of primal variables/variables in the constraint (if a dual variable)
+        nb_constraints::Integer
 
         function Variable(ID::_varIDType , domain::Vector{<:_varValueType}, 
                         value::_varValueType=undef)
@@ -25,7 +27,7 @@ module BOperands
             """
             #domain = [convert(Float64, val) for val in domain]
             index_domain = init_index_domain(domain)
-            return new(ID, domain, value, index_domain, 1, undef)
+            return new(ID, domain, value, index_domain, 1, undef, 0)
         end
     end
 
@@ -40,6 +42,10 @@ module BOperands
 
     #Base.show(io::IO, x::Variable) = print(io, string(x.ID)*": "*string(x.domain))
     Base.show(io::IO, x::Variable) = print(io, string(x.ID))
+
+    function size_domain(variable::Variable)
+        return variable.index_domain - variable.index_domain_lower
+    end
 
     ### CONSTRAINTS ###
 
