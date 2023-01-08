@@ -8,16 +8,27 @@ module Solver
     include("constants.jl")
     
     using ..Instance: Problem, getVariable,addConstraint        # .. because the include(..model/instance.jl) should be done in the file that includes this file
+    include("arc-consistency.jl")
     include("backtrack.jl")
     include("backjumping.jl")
 
-    export backjumping, backtrack, solve, AC4
+    export backjumping, backtrack, solve, AC4, forward_checking
 
-    function solve(instance::Problem, maxTime::Real=Inf)
+    function solve(instance::Problem, maxTime::Real=Inf, 
+                    applyBacktrack::Bool=true, applyMACR::Bool=true, applyFC::Bool=true, 
+                    applyMAC::Bool=false)
+
         """
         Parameters
             - instance: problem instance.
             - maxTime: maximum time given to the solver to find the solution.
+            - applyBacktrack: if true, backtrack is used. If false, backjumping is used.
+            - applyMAC: Maintain-Arc-Consistency. If true, AC4 is applied at each node.
+                If false, AC4 is not applied.
+            - applyMACR: Maintain-Arc-Consistency at the root. If true, AC4 is applied only
+                at the root node. If false, AC4 is not applied at the root node.
+            - applyFC: if true, Forward-Checking is applied. If false, Forward-Checking is
+                not applied.
         """
         resolveOk = false
         solutionStatus = PSolutionNoSolutionFound
@@ -30,27 +41,30 @@ module Solver
         if num_constr_removed > 0
             println("Number of constraints removed by intersection: ", num_constr_removed, "/",num_constr_before)
         end
-    
+        
+        sortVariablesBy = "size_domain"
+
         ## resolution phase
         if instance.sense == 0
-            resolveOk = actualSolveCSP(instance, init_time, maxTime)
+            resolveOk, sizeTree = actualSolveCSP(instance, init_time, maxTime, applyBacktrack, applyMACR, applyFC, applyMAC, sortVariablesBy)
             if resolveOk
                 solutionStatus = PSolutionSolutionFound
             else
                 solutionStatus = PSolutionInfeasible
             end
         else
-            resolveOk, solutionStatus = actualSolveCOP(instance, init_time, maxTime) 
+            resolveOk, solutionStatus, sizeTree = actualSolveCOP(instance, init_time, maxTime, applyBacktrack, applyMACR, applyFC, applyMAC, sortVariablesBy) 
         end
         
     
         delta_time = time() - init_time
         status = get(PSolutionToStatus, solutionStatus, 0)
     
-        return status, delta_time
+        return status, delta_time, sizeTree
     end
 
-    function actualSolveCSP(instance::Problem, init_time::Real, maxTime::Real)
+    function actualSolveCSP(instance::Problem, init_time::Real, maxTime::Real, applyBacktrack::Bool,
+        applyMACR::Bool, applyFC::Bool, applyMAC::Bool, sortVariablesBy::String)
         """
             Solve an constraint satisfaction problem.
             Parameters
@@ -58,10 +72,18 @@ module Solver
             - init_time: initial time.
             - maxTime: maximum time given to the solver to find the solution.
         """
-        return backtrack(instance, init_time, maxTime)
+
+        if applyBacktrack
+            isConsistent, sizeTree = backtrack(instance, init_time, maxTime, applyMACR, applyFC, applyMAC, sortVariablesBy)
+        else
+            isConsistent, sizeTree =  backjumping(instance, init_time, maxTime, applyMACR, applyFC, applyMAC, sortVariablesBy)
+        end
+        
+        return isConsistent, sizeTree
     end
 
-    function actualSolveCOP(instance::Problem, init_time::Real, maxTime::Real)
+    function actualSolveCOP(instance::Problem, init_time::Real, maxTime::Real, applyBacktrack::Bool,
+        applyMACR::Bool, applyFC::Bool, applyMAC::Bool, sortVariablesBy::String)
         """
             Solve an constraint optimization problem. The objective should always be a Variable.
 
@@ -88,7 +110,8 @@ module Solver
         resolveOk = false
         right_idx_resolveOk = false     # true if the solution associated to the right_idx is ok
         left_idx_resolveOk = false      # true if the solution associated to the left_idx is ok
-        instance_copy = deepcopy(instance) 
+        instance_copy = deepcopy(instance)
+        sizeTree = 0
         
         while true
             
@@ -97,41 +120,43 @@ module Solver
             #instance_copy.objective.value = obj_values[middle_idx]
             instance_copy.objective.index_domain = middle_idx
             instance_copy.objective.index_domain_lower = middle_idx
+            #instance_copy.objective.domain = instance.objective.domain
             
             #instance_copy.objective <= obj_values[middle_idx]            # change the virtual domain of the objective variable
             makeFeasible(instance_copy)                                  # reset var variables; TODO: to improve using inverse backtracking
             test_index_domain(instance_copy)
 
-            resolveOk = actualSolveCSP(instance_copy, init_time, maxTime)
-           
+            resolveOk, _sizeTree = actualSolveCSP(instance_copy, init_time, maxTime, applyBacktrack, applyMACR, applyFC, applyMAC, sortVariablesBy)
+            sizeTree += _sizeTree
+
             delta_time = time() - init_time
             if resolveOk
                 copySolutionValues(instance_copy, instance)
-                println("resolveOk with middle_idx: ", middle_idx, ", value: ", obj_values[middle_idx], ", delta_time: ", delta_time)
+                println("resolveOk with middle_idx: ", middle_idx, ", value: ", obj_values[middle_idx], ", delta_time: ", delta_time, ", sizeTree: ", sizeTree)
                 right_idx_resolveOk = true
                 right_idx = middle_idx
                 middle_idx=floor(Integer, (left_idx+middle_idx)/2)
                 if middle_idx == left_idx
                     if left_idx_resolveOk
                         resolveOk = true
-                        println("last resolveOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time)
+                        println("last resolveOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time, ", sizeTree: ", sizeTree)
                     else
-                        println("last resolveNotOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time)
+                        println("last resolveNotOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time, ", sizeTree: ", sizeTree)
                     end
                     
                     break
                 end
             else
-                println("resolveNotOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time)
+                println("resolveNotOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time, ", sizeTree: ", sizeTree, ", sizeTree: ", sizeTree)
                 left_idx_resolveOk = true
                 left_idx = middle_idx
                 middle_idx=ceil(Integer, (middle_idx+right_idx)/2)
                 if middle_idx == right_idx
                     if right_idx_resolveOk
                         resolveOk = true
-                        println("last resolveOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time)
+                        println("last resolveOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time, ", sizeTree: ", sizeTree)
                     else
-                        println("last resolveNotOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time)
+                        println("last resolveNotOk with middle_idx: ", middle_idx, ", delta_time: ", delta_time, ", sizeTree: ", sizeTree)
                     end
                     
                     break
@@ -161,7 +186,7 @@ module Solver
             statusSol = PSolutionInfeasible
         end
         
-        return resolveOk, statusSol
+        return resolveOk, statusSol, sizeTree
     end
 
     function makeFeasible(instance::Problem)

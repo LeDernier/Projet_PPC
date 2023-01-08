@@ -5,11 +5,11 @@ module Instance
     include("lp_operands.jl")
     include("operations.jl")
 
-    import .BOperands: Variable, BConstraint, num_dVariables, _varIDType, _varValueType
+    import .BOperands: Variable, BConstraint, num_dVariables, _varIDType, _varValueType, size_domain
     using .LpOperands: LpAffineExpression, LpConstraint, +, -, *, ==, <=, >=, !=, value, _varMapType
     
 
-    export Variable, BConstraint, _varIDType, _varValueType,
+    export Variable, BConstraint, _varIDType, _varValueType, size_domain,
     +, -, *, ==, <=, >=, !=,
     Problem, addVariables, getVariable, addConstraints, addConstraint, addObjective, nbConstraints, nbVariables, makeExplicitBinary
     
@@ -64,10 +64,18 @@ module Instance
             """
             vars = Dict(var.ID => var for var in variables)
             constrs = Dict(constr.ID => constr for constr in constraints)
+            
             if isnothing(objective) || sense == 0
                 sense = 0
                 objective = nothing
             end
+
+            # count the number of constraints in which a variable appears
+            for constr in constrs
+                constr.variables[1].nb_constraints += 1
+                constr.variables[2].nb_constraints += 1
+            end
+
             sense = sign(sense)
             return new(vars, constrs, objective, sense, [])
         end
@@ -128,6 +136,10 @@ module Instance
                 else
                     # add the constraint if there are no constraint on the variables x,y
                     instance.constraints[constraint.ID] = constraint
+
+                    # count the number of constraints in which a variable appears
+                    instance.variables[constraint.varsIDs[1]].nb_constraints += 1
+                    instance.variables[constraint.varsIDs[2]].nb_constraints += 1
                 end
             end
         end
@@ -273,6 +285,10 @@ module Instance
                         else
                             # add the constraint if there are no constraint on the variables x,y
                             instance.constraints[bconstr.ID] = bconstr
+
+                            # count the number of constraints in which a variable appears
+                            instance.variables[varsnames[1]].nb_constraints += 1
+                            instance.variables[varsnames[2]].nb_constraints += 1
                         end
                     end
                 else
@@ -302,6 +318,10 @@ module Instance
                     end
                     bconstr = BConstraint(varsnames, feasible_points)
                     instance.constraints[bconstr.ID] = bconstr
+
+                    # count the number of constraints in which a variable appears
+                    instance.variables[varsnames[1]].nb_constraints += 1
+                    instance.variables[varsnames[2]].nb_constraints += 1
                 end
             end
         end
